@@ -1,119 +1,198 @@
 'use client';
 
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import PageShell from '../Components/PageShell';
 import { useDemoState } from '../Components/DemoStateContext';
-import { getActiveRecommendation } from '../Components/DemoData';
-import { moodMeta, getCheckinRecommendation } from '../Components/AfterLogin/CheckinData';
+import type { RecommendationState } from '../Components/DemoData';
 
 const bgDark = '#090C0B';
 const accentLime = '#D4FF3E';
 const textGray = '#9CA3AF';
 
+type LibraryActivity = {
+  state: RecommendationState;
+  emoji: string;
+  title: string;
+  intensity: string;
+  duration: number;
+  tags: string[];
+};
+
+const library: LibraryActivity[] = [
+  { state: 'accepted', emoji: '🏃', title: 'Easy Run', intensity: 'Easy', duration: 30, tags: [] },
+  { state: 'shortened', emoji: '🏋️', title: '20-Min Home Bodyweight', intensity: 'Light', duration: 20, tags: ['Indoor', 'Low Impact'] },
+  { state: 'replaced', emoji: '🧘', title: 'Mobility + Breathing Break', intensity: 'Calm', duration: 20, tags: ['Desk Stretches', 'Indoor', 'Low Impact'] },
+  { state: 'skipped', emoji: '🚶', title: '10-Min Walk + Hydration', intensity: 'Easy', duration: 10, tags: ['Indoor', 'Low Impact'] },
+];
+
+const filters = ['All', 'Desk Stretches', 'Low Impact', 'Indoor'];
+
 export default function MovePage() {
-  const { currentUser, recommendationState, setRecommendationState, checkinMood, checkinEnergy } = useDemoState();
-  const activeRec = getActiveRecommendation(currentUser, recommendationState);
-  const todaysCheckin =
-    checkinMood && checkinEnergy !== null
-      ? { mood: checkinMood, energy: checkinEnergy, rec: getCheckinRecommendation(checkinMood, checkinEnergy) }
-      : null;
-  const heroRec = todaysCheckin ? todaysCheckin.rec : activeRec;
+  const router = useRouter();
+  const { setRecommendationState } = useDemoState();
+  const [activeFilter, setActiveFilter] = useState('All');
+
+  const filtered = useMemo(
+    () => (activeFilter === 'All' ? library : library.filter((item) => item.tags.includes(activeFilter))),
+    [activeFilter],
+  );
+
+  const startActivity = (state: RecommendationState) => {
+    setRecommendationState(state);
+    router.push('/active-session');
+  };
 
   return (
     <PageShell
       eyebrow="Fitur · Move"
       title="Move"
-      description="Sesuaikan rekomendasi aktivitas hari ini berdasarkan mood, energi, dan waktu yang kamu punya."
+      description="Cari aktivitas lain kalau rekomendasi utama nggak cocok buat kamu hari ini."
       backgroundImage="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1920&q=80"
     >
-      {todaysCheckin && (
-        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '16px', fontWeight: 700 }}>
-            {moodMeta[todaysCheckin.mood].emoji} {moodMeta[todaysCheckin.mood].label}
-          </span>
-          <span style={{ fontSize: '16px', fontWeight: 700, color: accentLime }}>⚡ {todaysCheckin.energy}% Energy</span>
-        </div>
-      )}
+      <style>
+        {`
+          .move-ask-btn { transition: all 0.2s ease; }
+          .move-ask-btn:hover { transform: translateY(-2px); background: rgba(212, 255, 62, 0.18) !important; }
+          .move-filter-pill { transition: all 0.2s ease; }
+          .move-filter-pill:hover { border-color: rgba(212, 255, 62, 0.5); }
+          .move-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+          .move-card {
+            padding: 26px;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.2s ease;
+          }
+          .move-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(212, 255, 62, 0.35);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.3);
+          }
+          .move-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: rgba(212, 255, 62, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 18px;
+          }
+          .move-card-cta {
+            display: inline-block;
+            margin-top: 20px;
+            background: none;
+            border: none;
+            padding: 0;
+            color: ${accentLime};
+            font-weight: 800;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+          }
+          .move-card:hover .move-card-cta { transform: translateX(4px); }
+          @media (max-width: 900px) {
+            .move-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          }
+          @media (max-width: 600px) {
+            .move-grid { grid-template-columns: 1fr; }
+          }
+        `}
+      </style>
 
+      {/* NEED SOMETHING ELSE BANNER */}
       <div
         style={{
           borderRadius: '28px',
-          background: 'linear-gradient(180deg, rgba(212, 255, 62, 0.06), rgba(15, 23, 42, 0.9))',
-          border: '1px solid rgba(212, 255, 62, 0.18)',
-          padding: '26px',
+          padding: '28px 32px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          backdropFilter: 'blur(12px)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '20px',
         }}
       >
-        <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-          Recommended for you
-        </p>
-        <h2 style={{ margin: '12px 0 0', fontSize: '1.7rem', fontWeight: 800 }}>{heroRec.activity}</h2>
-        <p style={{ margin: '6px 0 0', color: accentLime, fontSize: '13px', fontWeight: 700 }}>{heroRec.intensity} intensity</p>
-        <p style={{ margin: '10px 0 0', color: '#e2e8f0', lineHeight: 1.75 }}>{heroRec.reason}</p>
-
-        {!todaysCheckin && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginTop: '20px' }}>
-            {[
-              { label: 'Durasi', value: `${activeRec.durationMinutes} menit` },
-              { label: 'Mulai', value: activeRec.startTime },
-              { label: 'Status', value: recommendationState === 'pending' ? 'Base plan' : recommendationState },
-            ].map((item) => (
-              <div key={item.label} style={{ padding: '16px', borderRadius: '18px', background: '#0f172a' }}>
-                <p style={{ margin: 0, color: textGray, fontSize: '12px' }}>{item.label}</p>
-                <p style={{ margin: '10px 0 0', fontWeight: 700 }}>{item.value}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>Need something else?</h2>
+          <p style={{ margin: '8px 0 0', color: textGray, fontSize: '14px' }}>It's all good — pick whatever fits your day.</p>
+        </div>
         <button
-          onClick={() => setRecommendationState('accepted')}
-          className="dash-btn"
-          style={{ marginTop: '22px', width: '100%', padding: '15px', borderRadius: '100px', border: 'none', background: accentLime, color: bgDark, fontWeight: 800, cursor: 'pointer', fontSize: '15px' }}
+          onClick={() => setActiveFilter('Indoor')}
+          className="move-ask-btn"
+          style={{
+            padding: '14px 24px',
+            borderRadius: '100px',
+            border: '1px solid rgba(212, 255, 62, 0.4)',
+            background: 'rgba(212, 255, 62, 0.1)',
+            color: accentLime,
+            fontWeight: 800,
+            fontSize: '14px',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
         >
-          Start Activity
+          ✨ Ask CareBot for Indoor Alternatives
         </button>
-
-        {recommendationState !== 'pending' && (
-          <p style={{ margin: '16px 0 0 0', color: '#cbd5e1', fontSize: '13px' }}>
-            Status: <strong>{recommendationState}</strong>.{' '}
-            {recommendationState === 'accepted' ? 'Rencana tersimpan ke riwayat aktivitasmu.' : ''}
-          </p>
-        )}
       </div>
 
-      <div>
-        <h2 style={{ margin: '0 0 16px', fontSize: '1.3rem', fontWeight: 800 }}>Pilihan Lain</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+      {/* FILTER PILLS */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+        {filters.map((filter) => (
           <button
-            onClick={() => setRecommendationState('shortened')}
-            className="dash-btn"
-            style={{ padding: '18px', borderRadius: '20px', border: '1px solid rgba(212, 255, 62, 0.35)', background: 'rgba(255,255,255,0.03)', color: '#f8fafc', cursor: 'pointer', fontWeight: 700, textAlign: 'left' }}
+            key={filter}
+            onClick={() => setActiveFilter(filter)}
+            className="move-filter-pill"
+            style={{
+              padding: '10px 20px',
+              borderRadius: '100px',
+              border: `1px solid ${activeFilter === filter ? accentLime : 'rgba(255,255,255,0.12)'}`,
+              background: activeFilter === filter ? accentLime : 'rgba(255,255,255,0.03)',
+              color: activeFilter === filter ? bgDark : '#e2e8f0',
+              fontWeight: 800,
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
           >
-            <span style={{ display: 'block', fontSize: '15px', fontWeight: 800 }}>Singkatkan</span>
-            <span style={{ display: 'block', marginTop: '6px', fontSize: '12px', color: textGray, fontWeight: 500 }}>
-              20-minute home bodyweight session
-            </span>
+            {filter}
           </button>
-          <button
-            onClick={() => setRecommendationState('replaced')}
-            className="dash-btn"
-            style={{ padding: '18px', borderRadius: '20px', border: '1px solid rgba(148, 163, 184, 0.35)', background: 'rgba(255,255,255,0.03)', color: '#f8fafc', cursor: 'pointer', fontWeight: 700, textAlign: 'left' }}
-          >
-            <span style={{ display: 'block', fontSize: '15px', fontWeight: 800 }}>Alternatif Tenang</span>
-            <span style={{ display: 'block', marginTop: '6px', fontSize: '12px', color: textGray, fontWeight: 500 }}>
-              Mobility routine + breathing break
+        ))}
+      </div>
+
+      {/* ACTIVITY GRID */}
+      <div className="move-grid">
+        {filtered.map((item) => (
+          <div key={item.title} className="move-card">
+            <div className="move-card-icon">{item.emoji}</div>
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.15rem', fontWeight: 800 }}>{item.title}</h3>
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '5px 12px',
+                borderRadius: '100px',
+                background: 'rgba(212, 255, 62, 0.1)',
+                border: '1px solid rgba(212, 255, 62, 0.3)',
+                color: accentLime,
+                fontSize: '12px',
+                fontWeight: 800,
+              }}
+            >
+              {item.intensity} · {item.duration} min
             </span>
-          </button>
-          <button
-            onClick={() => setRecommendationState('skipped')}
-            className="dash-btn"
-            style={{ padding: '18px', borderRadius: '20px', border: '1px solid rgba(248, 113, 113, 0.35)', background: 'rgba(255,255,255,0.03)', color: '#fbcfe8', cursor: 'pointer', fontWeight: 700, textAlign: 'left' }}
-          >
-            <span style={{ display: 'block', fontSize: '15px', fontWeight: 800 }}>Lewati</span>
-            <span style={{ display: 'block', marginTop: '6px', fontSize: '12px', color: textGray, fontWeight: 500 }}>
-              10-minute walk and hydration break
-            </span>
-          </button>
-        </div>
+            <div>
+              <button onClick={() => startActivity(item.state)} className="move-card-cta">
+                Start →
+              </button>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p style={{ margin: 0, color: textGray, gridColumn: '1 / -1' }}>No activities match this filter yet.</p>
+        )}
       </div>
     </PageShell>
   );

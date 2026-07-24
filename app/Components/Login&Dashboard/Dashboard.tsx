@@ -527,7 +527,7 @@ export default function Dashboard() {
               </p>
 
               <Link
-                href="/move"
+                href="/active-session"
                 className="dash-btn cta-shimmer"
                 style={{
                   display: 'inline-block',
