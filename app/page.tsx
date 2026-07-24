@@ -1,274 +1,456 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import {
-  acceptRecommendation,
-  formatLocalTime,
-  generateRecommendation,
-  getActivityHistory,
-  getRecommendationContext,
-  listUsers,
-  OFFLINE_FALLBACK_RECOMMENDATION,
-  replaceRecommendation,
-  reportActivityResult,
-  shortenRecommendation,
-  skipRecommendation,
-  type ActivityHistoryEntry,
-  type CompletionStatus,
-  type DailyCheckIn,
-  type RecommendationContext,
-  type RecommendationResponse,
-  type RecommendationStatus,
-  type User,
-} from "@/lib/api";
-import CheckInForm from "./components/CheckInForm";
-import RecommendationCard from "./components/RecommendationCard";
+import { useRouter } from 'next/navigation';
 
-export default function Home() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [usersError, setUsersError] = useState<string | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+export default function MainApp() {
+  const router = useRouter();
 
-  const [context, setContext] = useState<RecommendationContext | null>(null);
-  const [contextLoading, setContextLoading] = useState(false);
+  // Fungsi pindah ke halaman login
+  const handleOpenLogin = () => {
+    router.push('/login');
+  };
 
-  const [recommendation, setRecommendation] = useState<RecommendationResponse | null>(null);
-  const [recommendationIsFallback, setRecommendationIsFallback] = useState(false);
-  const [recommendationLoading, setRecommendationLoading] = useState(false);
-  const [recommendationStatus, setRecommendationStatus] = useState<RecommendationStatus | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  const [history, setHistory] = useState<ActivityHistoryEntry[]>([]);
-
-  useEffect(() => {
-    listUsers()
-      .then(setUsers)
-      .catch(() => setUsersError("Couldn't reach the CareShift backend. Is it running on :8001?"));
-  }, []);
-
-  async function refreshHistory(userId: string) {
-    try {
-      setHistory(await getActivityHistory(userId));
-    } catch {
-      setHistory([]);
-    }
-  }
-
-  async function selectUser(userId: string) {
-    setSelectedUserId(userId);
-    setRecommendation(null);
-    setRecommendationStatus(null);
-    setContextLoading(true);
-    try {
-      const ctx = await getRecommendationContext(userId);
-      setContext(ctx);
-    } catch {
-      setContext(null);
-    } finally {
-      setContextLoading(false);
-    }
-    refreshHistory(userId);
-  }
-
-  function handleCheckInSaved(checkIn: DailyCheckIn) {
-    setContext((prev) =>
-      prev
-        ? {
-            ...prev,
-            latest_check_in: checkIn,
-            mood: checkIn.mood,
-            energy: checkIn.energy_level,
-            location: checkIn.location ?? prev.location,
-          }
-        : prev
-    );
-  }
-
-  async function handleGenerate() {
-    if (!selectedUserId) return;
-    setRecommendationLoading(true);
-    setRecommendationStatus(null);
-    try {
-      const rec = await generateRecommendation(selectedUserId);
-      setRecommendation(rec);
-      setRecommendationIsFallback(rec.recommendation_id === "offline-fallback");
-    } catch {
-      // Critical UX rule (CLAUDE.md): never show a visible error -- fall
-      // back to the hardcoded recommendation if the backend is unreachable.
-      setRecommendation(OFFLINE_FALLBACK_RECOMMENDATION);
-      setRecommendationIsFallback(true);
-    } finally {
-      setRecommendationLoading(false);
-    }
-  }
-
-  async function handleAccept() {
-    if (!recommendation) return;
-    setActionLoading(true);
-    try {
-      const res = await acceptRecommendation(recommendation.recommendation_id);
-      setRecommendationStatus(res.status);
-    } catch {
-      // offline fallback recommendations have no real DB row -- just reflect
-      // the intent locally so the demo doesn't visibly break.
-      setRecommendationStatus("accepted");
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleSkip() {
-    if (!recommendation) return;
-    setActionLoading(true);
-    try {
-      const res = await skipRecommendation(recommendation.recommendation_id);
-      setRecommendationStatus(res.status);
-    } catch {
-      setRecommendationStatus("skipped");
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleShorten() {
-    if (!recommendation) return;
-    setActionLoading(true);
-    try {
-      const rec = await shortenRecommendation(recommendation.recommendation_id);
-      setRecommendation(rec);
-      setRecommendationIsFallback(false);
-      setRecommendationStatus(null);
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleReplace() {
-    if (!recommendation) return;
-    setActionLoading(true);
-    try {
-      const rec = await replaceRecommendation(recommendation.recommendation_id);
-      setRecommendation(rec);
-      setRecommendationIsFallback(false);
-      setRecommendationStatus(null);
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleMarkResult(completionStatus: CompletionStatus) {
-    if (!recommendation || !selectedUserId) return;
-    setActionLoading(true);
-    try {
-      await reportActivityResult(selectedUserId, {
-        recommendation_id: recommendation.recommendation_id,
-        completion_status: completionStatus,
-      });
-      setRecommendationStatus(completionStatus);
-      refreshHistory(selectedUserId);
-    } catch {
-      setRecommendationStatus(completionStatus);
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  const selectedUser = users.find((u) => u.id === selectedUserId) ?? null;
+  // --- TAMPILAN UTAMA: LANDING PAGE ---
+  const bgDark = '#090C0B';
+  const accentLime = '#D4FF3E'; 
+  const textGray = '#9CA3AF';
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">CareShift</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Pick a demo user, check in, and get an AI wellbeing recommendation.
-        </p>
-      </header>
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      backgroundColor: bgDark, 
+      backgroundImage: `
+        linear-gradient(to right, rgba(9, 12, 11, 1) 0%, rgba(9, 12, 11, 0.8) 35%, rgba(9, 12, 11, 0.2) 100%),
+        radial-gradient(circle at 80% 50%, rgba(212, 255, 62, 0.1) 0%, transparent 60%),
+        url('https://images.unsplash.com/photo-1486218119243-13883505764c?auto=format&fit=crop&w=1920&q=80')
+      `,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      color: 'white', 
+      fontFamily: 'system-ui, -apple-system, sans-serif', 
+      overflowX: 'hidden',
+      position: 'relative'
+    }}>
+      
+      {/* INJECTED CSS ANIMATIONS & HOVER EFFECTS */}
+      <style>
+        {`
+          @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes popOut {
+            0% { opacity: 0; transform: scale(0.85); }
+            70% { transform: scale(1.02); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          @keyframes floatWidget {
+            0% { transform: translateY(0px) translateZ(50px); }
+            50% { transform: translateY(-20px) translateZ(50px); }
+            100% { transform: translateY(0px) translateZ(50px); }
+          }
+          @keyframes levitatePhone {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-30px); }
+            100% { transform: translateY(0px); }
+          }
+          @keyframes levitateWatch {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+          }
+          @keyframes pulseGlow {
+            0% { box-shadow: 0 0 50px rgba(212, 255, 62, 0.15), inset 0 0 40px rgba(212, 255, 62, 0.1); transform: scale(1); }
+            50% { box-shadow: 0 0 80px rgba(212, 255, 62, 0.4), inset 0 0 60px rgba(212, 255, 62, 0.2); transform: scale(1.02); }
+            100% { box-shadow: 0 0 50px rgba(212, 255, 62, 0.15), inset 0 0 40px rgba(212, 255, 62, 0.1); transform: scale(1); }
+          }
+          
+          .animate-fade-up {
+            opacity: 0;
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+          .animate-pop {
+            opacity: 0;
+            animation: popOut 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          }
+          .animate-phone-levitate {
+            animation: levitatePhone 8s ease-in-out infinite;
+          }
+          .animate-watch-levitate {
+            animation: levitateWatch 6s ease-in-out infinite 1s;
+          }
+          .animate-pulse {
+            animation: pulseGlow 3s infinite;
+          }
 
-      {usersError && <p className="text-sm text-red-600 dark:text-red-400">{usersError}</p>}
+          .btn-primary {
+            transition: all 0.3s ease;
+          }
+          .btn-primary:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(212, 255, 62, 0.4) !important;
+          }
+          .btn-secondary {
+            transition: all 0.3s ease;
+          }
+          .btn-secondary:hover {
+            transform: translateY(-5px) scale(1.05);
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            border-color: #fff !important;
+          }
+          .nav-link {
+            transition: all 0.2s ease;
+          }
+          .nav-link:hover {
+            color: ${accentLime} !important;
+            text-shadow: 0 0 10px rgba(212, 255, 62, 0.5);
+          }
+        `}
+      </style>
 
-      <section className="flex gap-3">
-        {users.map((user) => (
-          <button
-            key={user.id}
-            onClick={() => selectUser(user.id)}
-            className={`rounded-full border px-5 py-2 text-sm font-medium transition-colors ${
-              selectedUserId === user.id
-                ? "border-transparent bg-foreground text-background"
-                : "border-black/15 hover:bg-black/[.04] dark:border-white/20 dark:hover:bg-white/[.06]"
-            }`}
-          >
-            {user.name}
-          </button>
-        ))}
+      {/* BACKGROUND ORBITS */}
+      <div style={{ position: 'absolute', top: '50%', right: '-15%', transform: 'translateY(-50%)', width: '1600px', height: '1600px', borderRadius: '50%', border: '2px solid rgba(212, 255, 62, 0.08)', zIndex: 0, pointerEvents: 'none' }}></div>
+      <div style={{ position: 'absolute', top: '50%', right: '-5%', transform: 'translateY(-50%)', width: '1200px', height: '1200px', borderRadius: '50%', border: '2px solid rgba(212, 255, 62, 0.12)', zIndex: 0, pointerEvents: 'none' }}></div>
+
+      {/* NAVBAR */}
+      <nav className="animate-fade-up" style={{ animationDelay: '0.1s', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '40px 5%', borderBottom: '1px solid rgba(255,255,255,0.05)', zIndex: 10, position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ width: '80px', height: '80px', backgroundColor: accentLime, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: bgDark, fontWeight: '900', fontSize: '40px', fontStyle: 'italic', boxShadow: `0 0 20px rgba(212, 255, 62, 0.2)` }}>
+            C
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '40px', fontWeight: '900', letterSpacing: '-1px' }}>
+              CareShift<span style={{ fontSize: '18px', verticalAlign: 'super' }}>™</span>
+            </h2>
+            <p style={{ margin: 0, fontSize: '16px', color: accentLime, fontWeight: '800' }}>The Wellbeing Decision Engine™</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '32px', color: textGray, fontSize: '30px', fontWeight: '600' }}>
+          <a href="#how-it-works" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>How It Works</a>
+          <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
+          <a href="#movement-guide" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>Movement Guide</a>
+          <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
+          <a href="#whats-new" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>What's New</a>
+          <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
+          <a href="#about" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>About</a>
+        </div>
+
+        <button 
+          className="btn-primary"
+          onClick={handleOpenLogin} 
+          style={{ backgroundColor: accentLime, color: '#000', padding: '20px 40px', borderRadius: '100px', cursor: 'pointer', fontSize: '30px', fontWeight: '900', border: 'none', boxShadow: '0 4px 15px rgba(212, 255, 62, 0.3)' }}>
+          Start
+        </button>
+      </nav>
+
+      {/* HERO SECTION */}
+      <main style={{ flex: 1, display: 'flex', padding: '60px 5%', gap: '80px', maxWidth: '2500px', margin: '0 auto', width: '100%', boxSizing: 'border-box', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+        
+        {/* KOLOM KIRI */}
+        <div style={{ flex: '1.3', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          
+          <div className="animate-fade-up" style={{ animationDelay: '0.2s', display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+            <div className="animate-pulse" style={{ width: '16px', height: '16px', backgroundColor: accentLime, borderRadius: '50%' }}></div>
+            <span style={{ color: accentLime, fontSize: '22px', fontWeight: '900', letterSpacing: '4px', textShadow: '0 0 10px rgba(212, 255, 62, 0.3)' }}>DAILY WELLBEING DECISION GUIDANCE</span>
+          </div>
+          
+          <h1 className="animate-fade-up" style={{ animationDelay: '0.3s', fontSize: '150px', fontWeight: '900', lineHeight: '0.95', margin: '0 0 40px 0', letterSpacing: '-5px', textShadow: '0 10px 30px rgba(0,0,0,0.8)' }}>
+            Know your <span style={{ color: accentLime, textShadow: '0 0 30px rgba(212, 255, 62, 0.4)' }}>next</span><br />
+            <span style={{ background: 'linear-gradient(90deg, #4ADE80, #38BDF8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+              move.
+            </span>
+          </h1>
+          
+          <p className="animate-fade-up" style={{ animationDelay: '0.4s', fontSize: '32px', color: '#E2E8F0', maxWidth: '850px', lineHeight: '1.5', margin: '0 0 50px 0', fontWeight: '400', textShadow: '0 4px 10px rgba(0,0,0,0.8)' }}>
+            Not sure whether to push, move lightly, recover, or reset?<br />
+            CareShift turns your calendar schedule, recent movement, and current mood into one clear Daily Signal.
+          </p>
+          
+          <div className="animate-fade-up" style={{ animationDelay: '0.5s', borderLeft: `8px solid ${accentLime}`, paddingLeft: '32px', marginBottom: '60px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '20px 32px', borderRadius: '0 20px 20px 0', backdropFilter: 'blur(5px)' }}>
+            <p style={{ fontSize: '26px', margin: 0, color: '#CBD5E1', lineHeight: '1.6' }}>
+              <strong style={{ color: 'white' }}>Trackers show what you did.</strong> CareShift helps you decide what fits today without the guilt.
+            </p>
+          </div>
+
+          <div className="animate-fade-up" style={{ animationDelay: '0.6s', display: 'flex', gap: '30px', fontSize: '30px', fontWeight: '900', color: 'white', marginBottom: '60px', textShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+            <span>Move</span> <span style={{ color: accentLime }}>•</span>
+            <span>Sync</span> <span style={{ color: accentLime }}>•</span>
+            <span>Match</span> <span style={{ color: accentLime }}>•</span>
+            <span>Recover</span>
+          </div>
+
+          <div className="animate-fade-up" style={{ animationDelay: '0.7s', display: 'flex', gap: '24px' }}>
+            <button 
+              className="btn-primary"
+              onClick={handleOpenLogin} 
+              style={{ backgroundColor: accentLime, color: '#000', padding: '24px 48px', borderRadius: '100px', cursor: 'pointer', fontSize: '26px', fontWeight: '900', border: 'none' }}>
+              Launch Hackathon MVP
+            </button>
+            <button 
+              className="btn-secondary"
+              onClick={handleOpenLogin} 
+              style={{ backgroundColor: 'transparent', color: 'white', padding: '24px 48px', borderRadius: '100px', cursor: 'pointer', fontSize: '26px', fontWeight: '800', border: '3px solid rgba(255,255,255,0.3)' }}>
+              See the decision
+            </button>
+          </div>
+        </div>
+
+        {/* KOLOM KANAN (PHONE & WATCH MOCKUPS) */}
+        <div style={{ flex: '1', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', perspective: '1400px' }}>
+          
+          <div className="animate-pop" style={{ animationDelay: '0.5s', position: 'relative' }}>
+            
+            <div className="animate-phone-levitate" style={{ position: 'relative', zIndex: 2 }}>
+
+              {/* FLOATING WIDGETS */}
+              <div style={{ position: 'absolute', right: '-30%', top: '25%', display: 'flex', flexDirection: 'column', gap: '90px', zIndex: 10, transform: 'translateZ(60px)' }}>
+                
+                <div style={{ 
+                  opacity: 0, 
+                  animation: 'popOut 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards 1.2s, floatWidget 4s ease-in-out infinite 1.8s', 
+                  display: 'flex', alignItems: 'center', gap: '20px', padding: '20px 32px', backgroundColor: 'rgba(10, 15, 13, 0.9)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: '100px', backdropFilter: 'blur(12px)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+
+                }}>
+                  <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=80&q=80" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="Health" />
+                  <div style={{ fontSize: '20px', fontWeight: '500', lineHeight: '1.2' }}>Calendar<br/><span style={{ color: textGray, fontSize: '16px', fontWeight: '500' }}>Connected</span></div>
+                </div>
+
+                <div style={{ 
+                  opacity: 0, 
+                  animation: 'popOut 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards 1.4s, floatWidget 4.5s ease-in-out infinite 2.0s', 
+                  display: 'flex', alignItems: 'center', gap: '20px', padding: '20px 32px', backgroundColor: 'rgba(10, 15, 13, 0.9)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: '100px', backdropFilter: 'blur(12px)', marginLeft: '80px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' 
+                }}>
+                  <img src="https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=80&q=80" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="Wearables" />
+                  <div style={{ fontSize: '20px', fontWeight: '', lineHeight: '1.2' }}>CareMatch<br/><span style={{ color: textGray, fontSize: '16px', fontWeight: '500' }}>Synced</span></div>
+                </div>
+                
+                {/* SVG Connector */}
+                <svg className="animate-fade-up" style={{ 
+                  animationDelay: '1.6s', 
+                  position: 'absolute', 
+                  left: '30px', 
+                  top: '110px',    
+                  width: '1000px',
+                  height: '200px',
+                  overflow: 'visible',
+                  pointerEvents: 'none',
+                  zIndex: -1
+                }}>
+                  <path d="M 0, 80 Q 60, 0 0, -84" fill="none" stroke={accentLime} strokeWidth="3" strokeDasharray="8 8" opacity="0.6" />
+                  <path d="M 0, 80 Q 50, 95 80, 99" fill="none" stroke={accentLime} strokeWidth="3" strokeDasharray="8 8" opacity="0.6" />
+                </svg>
+              </div>
+              
+              {/* EFEK 3D PHONE */}
+              <div style={{ 
+                width: '500px', 
+                height: '1100px', 
+                backgroundColor: '#111814', 
+                border: '10px solid #334139', 
+                borderRadius: '64px', 
+                padding: '40px 30px', 
+                position: 'relative', 
+                zIndex: 1, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '30px', 
+                overflow: 'hidden',
+                transform: 'rotateY(-20deg) rotateX(8deg) rotateZ(2deg)',
+                transformStyle: 'preserve-3d',
+                boxShadow: `
+                  -1px 1px 0 #1e2621, -2px 2px 0 #1e2621, -3px 3px 0 #1e2621, 
+                  -4px 4px 0 #1e2621, -5px 5px 0 #1e2621, -6px 6px 0 #1e2621, 
+                  -7px 7px 0 #1e2621, -8px 8px 0 #1e2621, -9px 9px 0 #1e2621, 
+                  -10px 10px 0 #1e2621, -11px 11px 0 #1e2621, -12px 12px 0 #1e2621,
+                  -50px 60px 100px rgba(0,0,0,0.95), 
+                  inset 0 0 0 3px rgba(255,255,255,0.05)
+                `
+              }}>
+                
+                {/* Top Notch */}
+                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '150px', height: '36px', backgroundColor: '#2A3630', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', zIndex: 10 }}></div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 'bold' }}>12:40</span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ width: '24px', height: '14px', backgroundColor: 'white', borderRadius: '4px' }}></div>
+                  </div>
+                </div>
+
+                {/* PROFILE */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div style={{ width: '60px', height: '60px', backgroundColor: accentLime, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black', fontWeight: '900', fontSize: '32px' }}>C</div>
+                    <div>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold' }}>CareShift™</div>
+                      <div style={{ fontSize: '16px', color: accentLime, fontWeight: '800', letterSpacing: '0.5px' }}>YOUR DAY, DECODED</div>
+                    </div>
+                  </div>
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" style={{ width: '55px', height: '55px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${accentLime}` }} alt="Profile" />
+                </div>
+
+                <p style={{ margin: 0, fontSize: '20px', color: textGray, fontWeight: '500' }}>Hi Endy 👋</p>
+
+                {/* AI Signal Circle */}
+                <div style={{ border: `2px solid rgba(255,255,255,0.1)`, borderRadius: '32px', padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginTop: '20px', position: 'relative', backgroundColor: 'rgba(212, 255, 62, 0.02)' }}>
+                  <div style={{ position: 'absolute', top: '-14px', backgroundColor: '#111814', padding: '0 20px', fontSize: '16px', color: textGray, fontWeight: '800', letterSpacing: '1.5px' }}>TODAY'S SIGNAL</div>
+                  
+                  <div className="animate-pulse" style={{ width: '240px', height: '240px', borderRadius: '50%', border: `8px solid ${accentLime}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '70px', fontWeight: '900', color: accentLime, lineHeight: '1' }}>MOVE</span>
+                    <span style={{ fontSize: '18px', textAlign: 'center', padding: '0 24px', marginTop: '10px', color: 'white', fontWeight: '600' }}>Keep the day alive.</span>
+                  </div>
+                </div>
+
+                {/* CareMatch Mini UI */}
+                <div style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '24px', padding: '32px', marginTop: '16px', border: '2px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ fontSize: '16px', color: accentLime, fontWeight: '900', letterSpacing: '1px', marginBottom: '12px' }}>CAREMATCH AI</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', marginBottom: '12px' }}>15-Min Reset</div>
+                  <div style={{ fontSize: '20px', color: textGray, lineHeight: '1.5' }}>Eric is also free right now. A short, easy walk restarts your momentum without pressure.</div>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* 3D SMARTWATCH */}
+            <div className="animate-watch-levitate" style={{ 
+              position: 'absolute', 
+              bottom: '-60px', 
+              left: '-160px', 
+              zIndex: 20, 
+              opacity: 0,
+              animation: 'popOut 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards 0.9s, levitateWatch 6s ease-in-out infinite 1.5s'
+            }}>
+              <div style={{ width: '140px', height: '40px', backgroundColor: '#1A231E', margin: '0 auto', borderTopLeftRadius: '10px', borderTopRightRadius: '10px', transform: 'perspective(200px) rotateX(20deg)', transformOrigin: 'bottom', border: '2px solid #2A3630', borderBottom: 'none' }}></div>
+              
+              <div style={{ 
+                width: '220px', height: '260px', backgroundColor: '#0B0F0D', 
+                border: '12px solid #334139', borderRadius: '50px', 
+                padding: '24px', position: 'relative', 
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                transform: 'rotateY(15deg) rotateX(10deg) rotateZ(-5deg)', transformStyle: 'preserve-3d',
+                boxShadow: `
+                  5px 5px 0 #1e2621, 6px 6px 0 #1e2621, 7px 7px 0 #1e2621, 8px 8px 0 #1e2621,
+                  -30px 40px 60px rgba(0,0,0,0.8), inset 0 0 0 2px rgba(255,255,255,0.05)
+                `
+              }}>
+                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                   <div style={{ color: textGray, fontSize: '18px', fontWeight: 'bold' }}>12:40</div>
+                   <div style={{ width: '10px', height: '10px', backgroundColor: '#F43F5E', borderRadius: '50%', boxShadow: '0 0 10px #F43F5E' }}></div>
+                </div>
+
+                <div style={{ width: '130px', height: '130px', borderRadius: '50%', border: `6px solid ${accentLime}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderTopColor: 'transparent', transform: 'rotate(45deg)' }}>
+                  <div style={{ transform: 'rotate(-45deg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                     <span style={{ fontSize: '40px', fontWeight: '900', color: 'white', lineHeight: '1' }}>72</span>
+                     <span style={{ fontSize: '14px', color: accentLime, fontWeight: 'bold', marginTop: '4px' }}>BPM</span>
+                  </div>
+                </div>
+                
+                <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                  <div style={{ color: 'white', fontSize: '18px', fontWeight: 'bold' }}>Resting HR</div>
+                  <div style={{ color: textGray, fontSize: '14px' }}>Synced live</div>
+                </div>
+              </div>
+
+              <div style={{ width: '140px', height: '40px', backgroundColor: '#1A231E', margin: '0 auto', borderBottomLeftRadius: '10px', borderBottomRightRadius: '10px', transform: 'perspective(200px) rotateX(-20deg)', transformOrigin: 'top', border: '2px solid #2A3630', borderTop: 'none' }}></div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" style={{ padding: '140px 5% 100px', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>HOW IT WORKS</p>
+        <h2 style={{ margin: '16px 0 60px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
+          From your schedule to one clear signal.
+        </h2>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '30px' }}>
+          {[
+            { step: '01', emoji: '📝', title: 'Check in', text: 'Log your mood and energy in seconds — no lengthy tracker to fill out.' },
+            { step: '02', emoji: '🗓️', title: 'Sync your calendar', text: 'CareShift reads your schedule to see where the real free time is.' },
+            { step: '03', emoji: '🎯', title: 'Get your Daily Signal', text: 'Mood, energy, and calendar combine into one decision: push, move, recover, or reset.' },
+            { step: '04', emoji: '🤝', title: 'Move with CareMatch', text: 'See who else is free right now and pair up for an easier, more enjoyable session.' },
+          ].map((item) => (
+            <div key={item.step} style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '32px' }}>
+              <div style={{ color: accentLime, fontSize: '16px', fontWeight: '900', letterSpacing: '2px' }}>{item.step}</div>
+              <div style={{ fontSize: '36px', margin: '16px 0' }}>{item.emoji}</div>
+              <h3 style={{ margin: '0 0 12px', fontSize: '22px', fontWeight: '800' }}>{item.title}</h3>
+              <p style={{ margin: 0, color: textGray, fontSize: '16px', lineHeight: '1.6' }}>{item.text}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {selectedUser && contextLoading && <p className="text-sm text-zinc-500">Loading...</p>}
+      {/* MOVEMENT GUIDE */}
+      <section id="movement-guide" style={{ padding: '100px 5%', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>MOVEMENT GUIDE</p>
+        <h2 style={{ margin: '16px 0 60px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
+          Four signals, one clear next move.
+        </h2>
 
-      {selectedUser && context && !contextLoading && (
-        <>
-          <section className="rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
-            <h2 className="mb-2 font-semibold">Today&apos;s context for {selectedUser.name}</h2>
-            <ul className="flex flex-col gap-1 text-zinc-600 dark:text-zinc-400">
-              <li>Goal: {context.goal ?? "--"}</li>
-              <li>Experience: {context.experience ?? "--"}</li>
-              <li>Recent activity: {context.recent_activity ?? "none logged"}</li>
-              <li>
-                Next free slot:{" "}
-                {context.free_period
-                  ? `${formatLocalTime(context.free_period.start_time)} - ${formatLocalTime(
-                      context.free_period.end_time
-                    )} (${context.free_period.usable_minutes} min)`
-                  : "none found today"}
-              </li>
-            </ul>
-          </section>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '30px' }}>
+          {[
+            { title: 'MOVE', text: 'You have energy and a free window. Keep the day alive with a real session.' },
+            { title: 'SYNC', text: 'Your schedule is tight. Fit in something light between the gaps you already have.' },
+            { title: 'MATCH', text: 'Motivation is low but company helps. CareMatch finds someone free to join you.' },
+            { title: 'RECOVER', text: 'Mood and energy are low. Rest is the productive choice today — no guilt.' },
+          ].map((item) => (
+            <div key={item.title} style={{ border: `2px solid ${accentLime}`, borderRadius: '24px', padding: '32px', backgroundColor: 'rgba(212, 255, 62, 0.03)' }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: '28px', fontWeight: '900', color: accentLime }}>{item.title}</h3>
+              <p style={{ margin: 0, color: '#CBD5E1', fontSize: '16px', lineHeight: '1.6' }}>{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          <CheckInForm
-            userId={selectedUser.id}
-            initialCheckIn={context.latest_check_in}
-            defaultLocation={context.location}
-            onSaved={handleCheckInSaved}
-          />
+      {/* WHAT'S NEW */}
+      <section id="whats-new" style={{ padding: '100px 5%', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>WHAT'S NEW</p>
+        <h2 style={{ margin: '16px 0 60px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
+          Fresh off the hackathon build.
+        </h2>
 
-          <button
-            onClick={handleGenerate}
-            disabled={recommendationLoading}
-            className="rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
-          >
-            {recommendationLoading ? "Thinking..." : "Get my recommendation"}
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '900px' }}>
+          {[
+            { tag: 'NEW', title: 'Smart Calendar', text: 'CareShift now reads your calendar directly to surface real free time for movement.' },
+            { tag: 'NEW', title: 'CareMatch', text: 'Get paired with someone else who is free right now, so moving feels less like a chore.' },
+            { tag: 'IMPROVED', title: 'Mood & Energy check-in', text: 'A faster daily check-in that feeds straight into your Daily Signal.' },
+          ].map((item) => (
+            <div key={item.title} style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '24px' }}>
+              <span style={{ backgroundColor: accentLime, color: bgDark, fontSize: '13px', fontWeight: '900', padding: '6px 16px', borderRadius: '100px', flexShrink: 0 }}>{item.tag}</span>
+              <div>
+                <h3 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: '800' }}>{item.title}</h3>
+                <p style={{ margin: 0, color: textGray, fontSize: '16px', lineHeight: '1.6' }}>{item.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          {recommendation && (
-            <RecommendationCard
-              recommendation={recommendation}
-              isFallback={recommendationIsFallback}
-              status={recommendationStatus}
-              actionLoading={actionLoading}
-              onAccept={handleAccept}
-              onSkip={handleSkip}
-              onShorten={handleShorten}
-              onReplace={handleReplace}
-              onMarkResult={handleMarkResult}
-            />
-          )}
-
-          {history.length > 0 && (
-            <section className="rounded-xl border border-black/10 p-5 text-sm dark:border-white/10">
-              <h2 className="mb-2 font-semibold">Recent activity history</h2>
-              <ul className="flex flex-col gap-2">
-                {history.map((entry) => (
-                  <li key={entry.id} className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                    <span>
-                      {entry.activity_name} ({entry.duration_minutes} min, {entry.intensity})
-                    </span>
-                    <span className="capitalize">{entry.completion_status?.replace("_", " ")}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </>
-      )}
+      {/* ABOUT */}
+      <section id="about" style={{ padding: '100px 5% 160px', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>ABOUT</p>
+        <h2 style={{ margin: '16px 0 32px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
+          Built for people who don't need another tracker.
+        </h2>
+        <p style={{ margin: '0 0 40px', fontSize: '22px', color: '#E2E8F0', maxWidth: '850px', lineHeight: '1.6' }}>
+          CareShift isn't here to count your steps. It's here to answer one question every day:
+          what should you actually do next? By combining your calendar, your mood, and your energy,
+          CareShift turns raw data into a single, guilt-free decision — and CareMatch makes sure you
+          don't have to make that decision alone.
+        </p>
+        <button
+          className="btn-primary"
+          onClick={handleOpenLogin}
+          style={{ backgroundColor: accentLime, color: '#000', padding: '24px 48px', borderRadius: '100px', cursor: 'pointer', fontSize: '26px', fontWeight: '900', border: 'none' }}>
+          Launch Hackathon MVP
+        </button>
+      </section>
     </div>
   );
 }

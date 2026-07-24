@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from uuid import UUID
 
+from app.errors import AppError
 from app.models.schemas import DailyCheckIn, DailyCheckInCreate
 from app.services.supabase_client import get_supabase
 
@@ -13,7 +14,7 @@ def create_check_in(payload: DailyCheckInCreate) -> DailyCheckIn:
     insert_data = payload.model_dump(mode="json")
     result = supabase.table("daily_check_ins").insert(insert_data).execute()
     if not result.data:
-        raise HTTPException(status_code=500, detail="Failed to create check-in")
+        raise AppError(500, "SUPABASE_ERROR", "Failed to create check-in")
     return DailyCheckIn.model_validate(result.data[0])
 
 
@@ -29,5 +30,5 @@ def get_latest_check_in(user_id: UUID) -> DailyCheckIn:
         .execute()
     )
     if not result.data:
-        raise HTTPException(status_code=404, detail="No check-ins found for user")
+        raise AppError(404, "CHECK_IN_NOT_FOUND", "No check-ins found for user")
     return DailyCheckIn.model_validate(result.data[0])

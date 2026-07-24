@@ -1,94 +1,126 @@
--- WARNING: This schema is for context only and is not meant to be run.
--- Table order and constraints may not be valid for execution.
+-- CareShift Supabase schema.
+-- Safe to run against a disposable/local database: tables are dropped and
+-- recreated in dependency order.
 
-CREATE TABLE public.users (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  email text NOT NULL UNIQUE,
+create extension if not exists pgcrypto;
+
+drop table if exists public.activity_history cascade;
+drop table if exists public.activity_invitations cascade;
+drop table if exists public.friendships cascade;
+drop table if exists public.activity_recommendations cascade;
+drop table if exists public.daily_check_ins cascade;
+drop table if exists public.calendar_events cascade;
+drop table if exists public.user_preferences cascade;
+drop table if exists public.users cascade;
+
+create table public.users (
+  id uuid primary key default gen_random_uuid(),
+  username text not null unique check (length(trim(username)) > 0),
+  name text not null,
+  email text not null unique,
   experience_level text,
   primary_goal text,
   current_location text,
-  carematch_enabled boolean NOT NULL DEFAULT true,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT users_pkey PRIMARY KEY (id)
+  carematch_enabled boolean not null default true,
+  created_at timestamp with time zone not null default now()
 );
-CREATE TABLE public.user_preferences (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  preferred_activities ARRAY NOT NULL DEFAULT '{}'::text[],
-  disliked_activities ARRAY NOT NULL DEFAULT '{}'::text[],
-  friend_match_pref text,
-  CONSTRAINT user_preferences_pkey PRIMARY KEY (id)
+
+create table public.user_preferences (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references public.users(id) on delete cascade,
+  preferred_activities text[] not null default '{}'::text[],
+  disliked_activities text[] not null default '{}'::text[],
+  friend_match_pref text
 );
-CREATE TABLE public.calendar_events (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  title text NOT NULL,
-  start_time timestamp with time zone NOT NULL,
-  end_time timestamp with time zone NOT NULL,
+
+create table public.calendar_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  title text not null,
+  start_time timestamp with time zone not null,
+  end_time timestamp with time zone not null,
   event_type text,
-  CONSTRAINT calendar_events_pkey PRIMARY KEY (id),
-  CONSTRAINT calendar_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  constraint calendar_events_valid_time check (end_time > start_time)
 );
-CREATE TABLE public.daily_check_ins (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
+
+create table public.daily_check_ins (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
   mood text,
   energy_level text,
   physical_readiness text,
   location text,
   additional_notes text,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT daily_check_ins_pkey PRIMARY KEY (id)
+  created_at timestamp with time zone not null default now()
 );
-CREATE TABLE public.activity_recommendations (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  activity_name text NOT NULL,
-  category text NOT NULL CHECK (category = ANY (ARRAY['mental'::text, 'physical'::text, 'nutritional'::text])),
-  start_time timestamp with time zone NOT NULL,
-  duration_minutes integer NOT NULL CHECK (duration_minutes > 0),
+
+create table public.activity_recommendations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  activity_name text not null,
+  category text not null check (category in ('mental', 'physical', 'nutritional')),
+  start_time timestamp with time zone not null,
+  duration_minutes integer not null check (duration_minutes > 0),
   intensity text,
   reason text,
-  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'replaced'::text, 'shortened'::text, 'skipped'::text, 'completed'::text, 'partially_completed'::text])),
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT activity_recommendations_pkey PRIMARY KEY (id),
-  CONSTRAINT activity_recommendations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  status text not null default 'pending'
+    check (status in (
+      'pending',
+      'accepted',
+      'replaced',
+      'shortened',
+      'skipped',
+      'completed',
+      'partially_completed'
+    )),
+  created_at timestamp with time zone not null default now()
 );
-CREATE TABLE public.activity_history (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  recommendation_id uuid,
-  completion_status text,
+
+create table public.activity_history (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  recommendation_id uuid references public.activity_recommendations(id) on delete set null,
+  completion_status text check (completion_status in ('completed', 'partially_completed', 'skipped')),
   feedback text,
-  completed_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT activity_history_pkey PRIMARY KEY (id),
-  CONSTRAINT activity_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT activity_history_recommendation_id_fkey FOREIGN KEY (recommendation_id) REFERENCES public.activity_recommendations(id)
+  completed_at timestamp with time zone not null default now()
 );
-CREATE TABLE public.friendships (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  friend_id uuid NOT NULL,
-  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'declined'::text])),
-  carematch_enabled boolean NOT NULL DEFAULT true,
-  CONSTRAINT friendships_pkey PRIMARY KEY (id),
-  CONSTRAINT friendships_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT friendships_friend_id_fkey FOREIGN KEY (friend_id) REFERENCES public.users(id)
+
+create table public.friendships (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  friend_id uuid not null references public.users(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined')),
+  carematch_enabled boolean not null default true,
+  constraint friendships_no_self_friend check (user_id <> friend_id)
 );
-CREATE TABLE public.activity_invitations (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  sender_id uuid NOT NULL,
-  receiver_id uuid NOT NULL,
-  recommendation_id uuid,
-  activity_name text NOT NULL,
-  proposed_start timestamp with time zone NOT NULL,
-  proposed_end timestamp with time zone NOT NULL,
+
+create table public.activity_invitations (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references public.users(id) on delete cascade,
+  receiver_id uuid not null references public.users(id) on delete cascade,
+  recommendation_id uuid references public.activity_recommendations(id) on delete set null,
+  activity_name text not null,
+  proposed_start timestamp with time zone not null,
+  proposed_end timestamp with time zone not null,
   location text,
-  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'declined'::text, 'cancelled'::text])),
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT activity_invitations_pkey PRIMARY KEY (id),
-  CONSTRAINT activity_invitations_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id),
-  CONSTRAINT activity_invitations_receiver_id_fkey FOREIGN KEY (receiver_id) REFERENCES public.users(id),
-  CONSTRAINT activity_invitations_recommendation_id_fkey FOREIGN KEY (recommendation_id) REFERENCES public.activity_recommendations(id)
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined', 'cancelled')),
+  created_at timestamp with time zone not null default now()
 );
+
+create index calendar_events_user_time_idx
+  on public.calendar_events (user_id, start_time, end_time);
+
+create index daily_check_ins_user_created_idx
+  on public.daily_check_ins (user_id, created_at desc);
+
+create index activity_recommendations_user_created_idx
+  on public.activity_recommendations (user_id, created_at desc);
+
+create index activity_history_user_completed_idx
+  on public.activity_history (user_id, completed_at desc);
+
+create index friendships_user_id_idx on public.friendships (user_id, status);
+create index friendships_friend_id_idx on public.friendships (friend_id, status);
+
+create index activity_invitations_receiver_idx
+  on public.activity_invitations (receiver_id, status);

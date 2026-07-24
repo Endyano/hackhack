@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from uuid import UUID
 
+from app.errors import AppError
 from app.models.schemas import User, UserPreferences, UserUpdate
 from app.services.supabase_client import get_supabase
 
@@ -21,8 +22,8 @@ def list_users() -> list[User]:
 def get_user(user_id: UUID) -> User:
     supabase = get_supabase()
     result = supabase.table("users").select("*").eq("id", str(user_id)).maybe_single().execute()
-    if not result.data:
-        raise HTTPException(status_code=404, detail="User not found")
+    if not result or not result.data:
+        raise AppError(404, "USER_NOT_FOUND", "User not found")
     return User.model_validate(result.data)
 
 
@@ -31,11 +32,11 @@ def update_user(user_id: UUID, payload: UserUpdate) -> User:
     supabase = get_supabase()
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
-        raise HTTPException(status_code=400, detail="No fields to update")
+        raise AppError(400, "NO_UPDATE_FIELDS", "No fields to update")
 
     result = supabase.table("users").update(updates).eq("id", str(user_id)).execute()
     if not result.data:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise AppError(404, "USER_NOT_FOUND", "User not found")
     return User.model_validate(result.data[0])
 
 
@@ -49,6 +50,6 @@ def get_user_preferences(user_id: UUID) -> UserPreferences:
         .maybe_single()
         .execute()
     )
-    if not result.data:
-        raise HTTPException(status_code=404, detail="Preferences not found for user")
+    if not result or not result.data:
+        raise AppError(404, "PREFERENCES_NOT_FOUND", "Preferences not found for user")
     return UserPreferences.model_validate(result.data)

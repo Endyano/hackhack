@@ -8,6 +8,8 @@ import re
 
 from pydantic import BaseModel, ValidationError
 
+from app.foundry.intensity_rules import clamp_intensity
+
 VALID_CATEGORIES = {"mental", "physical", "nutritional"}
 VALID_INTENSITIES = {"easy", "moderate", "hard"}
 
@@ -58,6 +60,23 @@ INTENSITY_SYNONYMS = {
 }
 
 
+def _coerce(value: str, valid: set[str], synonyms: dict[str, str]) -> str | None:
+    """Exact match -> synonym lookup -> substring match (handles multi-word
+    variants like "physical activity" or "high intensity") -> give up."""
+    normalized = value.strip().lower()
+    if normalized in valid:
+        return normalized
+    if normalized in synonyms:
+        return synonyms[normalized]
+    for word, mapped in synonyms.items():
+        if word in normalized:
+            return mapped
+    for candidate in valid:
+        if candidate in normalized:
+            return candidate
+    return None
+
+
 class FoundryValidationError(Exception):
     """Raised when the model's output can't be coerced into a valid
     recommendation. Callers should fall back to the hardcoded recommendation."""
@@ -93,7 +112,9 @@ def _extract_json(raw: str) -> dict:
         raise FoundryValidationError(f"Malformed JSON from Foundry: {exc}") from exc
 
 
-def parse_and_validate(raw: str, usable_minutes: int) -> RawRecommendation:
+def parse_and_validate(
+    raw: str, usable_minutes: int, max_intensity: str = "hard"
+) -> RawRecommendation:
     data = _extract_json(raw)
 
     try:
@@ -101,15 +122,18 @@ def parse_and_validate(raw: str, usable_minutes: int) -> RawRecommendation:
     except ValidationError as exc:
         raise FoundryValidationError(f"Response missing/invalid fields: {exc}") from exc
 
-    category = parsed.category.strip().lower()
-    category = CATEGORY_SYNONYMS.get(category, category)
-    if category not in VALID_CATEGORIES:
+    category = _coerce(parsed.category, VALID_CATEGORIES, CATEGORY_SYNONYMS)
+    if category is None:
         raise FoundryValidationError(f"Invalid category: {parsed.category!r}")
 
-    intensity = parsed.intensity.strip().lower()
-    intensity = INTENSITY_SYNONYMS.get(intensity, intensity)
-    if intensity not in VALID_INTENSITIES:
+    intensity = _coerce(parsed.intensity, VALID_INTENSITIES, INTENSITY_SYNONYMS)
+    if intensity is None:
         raise FoundryValidationError(f"Invalid intensity: {parsed.intensity!r}")
+    # The model doesn't reliably follow the energy/mood -> intensity guidance
+    # in the prompt on its own (verified: it kept suggesting "moderate" for a
+    # low-energy/negative-mood case) -- clamp deterministically as the
+    # guarantee, same as duration_minutes below.
+    intensity = clamp_intensity(intensity, max_intensity)
 
     if parsed.duration_minutes <= 0 or parsed.duration_minutes > usable_minutes:
         raise FoundryValidationError(

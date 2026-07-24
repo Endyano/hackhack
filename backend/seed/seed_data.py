@@ -4,7 +4,7 @@ Run from the backend/ directory with the venv active and .env configured:
 
     python -m seed.seed_data
 
-Idempotent: deletes any existing demo users by email (cascades to their
+Idempotent: deletes any existing demo users by email/username (cascades to their
 related rows) before re-inserting, so this is safe to re-run before a demo.
 
 Calendar events are dated "today" (relative to when this script runs) so the
@@ -35,10 +35,18 @@ def main() -> None:
     supabase = get_supabase()
 
     # --- Clean slate for demo users (cascades to prefs/events/check-ins/etc.) ---
-    existing = (
-        supabase.table("users").select("id, email").in_("email", [ERIC_EMAIL, DANIEL_EMAIL]).execute()
+    existing_by_email = (
+        supabase.table("users").select("id").in_("email", [ERIC_EMAIL, DANIEL_EMAIL]).execute()
     )
-    existing_ids = [row["id"] for row in existing.data or []]
+    existing_by_username = (
+        supabase.table("users").select("id").in_("username", ["eric", "daniel"]).execute()
+    )
+    existing_ids = list(
+        {
+            row["id"]
+            for row in (existing_by_email.data or []) + (existing_by_username.data or [])
+        }
+    )
     if existing_ids:
         supabase.table("users").delete().in_("id", existing_ids).execute()
 
@@ -48,6 +56,7 @@ def main() -> None:
         .insert(
             [
                 {
+                    "username": "eric",
                     "name": "Eric",
                     "email": ERIC_EMAIL,
                     "experience_level": "beginner",
@@ -56,6 +65,7 @@ def main() -> None:
                     "carematch_enabled": True,
                 },
                 {
+                    "username": "daniel",
                     "name": "Daniel",
                     "email": DANIEL_EMAIL,
                     "experience_level": "intermediate",
@@ -178,22 +188,17 @@ def main() -> None:
         }
     ).execute()
 
-    # --- FRIENDSHIPS (bidirectional for simple querying) ---
+    # --- FRIENDSHIPS ---
+    # Eric and Daniel are already-accepted friends so CareMatch can surface
+    # their overlapping free time without a manual friend-request step in
+    # the scripted demo.
     supabase.table("friendships").insert(
-        [
-            {
-                "user_id": eric_id,
-                "friend_id": daniel_id,
-                "status": "accepted",
-                "carematch_enabled": True,
-            },
-            {
-                "user_id": daniel_id,
-                "friend_id": eric_id,
-                "status": "accepted",
-                "carematch_enabled": True,
-            },
-        ]
+        {
+            "user_id": eric_id,
+            "friend_id": daniel_id,
+            "status": "accepted",
+            "carematch_enabled": True,
+        }
     ).execute()
 
     print("Seeded demo data:")

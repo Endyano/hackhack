@@ -1,19 +1,21 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import './globals.css'
+import { DemoStateProvider } from './Components/DemoStateContext'
 
-export const metadata: Metadata = {
-  title: "CareShift",
-  description: "AI wellbeing planner",
-};
+export const metadata = {
+  title: 'CareShift MVP',
+  description: 'AI Wellbeing Planner & CareMatch',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="id">
+      <body style={{ margin: 0, backgroundColor: '#121212', fontFamily: 'sans-serif' }}>
+        <DemoStateProvider>{children}</DemoStateProvider>
+      </body>
     </html>
-  );
+  )
 }

@@ -1,7 +1,8 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
+from app.errors import AppError
 from app.models.schemas import ActivityHistoryEntry, ActivityResultRequest
 from app.services.recommendations import get_recommendation_row, update_recommendation_status
 from app.services.supabase_client import get_supabase
@@ -42,7 +43,7 @@ def get_activity_history(user_id: UUID) -> list[ActivityHistoryEntry]:
 def report_activity_result(user_id: UUID, payload: ActivityResultRequest) -> ActivityHistoryEntry:
     recommendation = get_recommendation_row(payload.recommendation_id)
     if recommendation["user_id"] != str(user_id):
-        raise HTTPException(status_code=404, detail="Recommendation does not belong to this user")
+        raise AppError(404, "RECOMMENDATION_NOT_FOUND", "Recommendation does not belong to this user")
 
     supabase = get_supabase()
     insert_result = (
@@ -58,7 +59,7 @@ def report_activity_result(user_id: UUID, payload: ActivityResultRequest) -> Act
         .execute()
     )
     if not insert_result.data:
-        raise HTTPException(status_code=500, detail="Failed to save activity result")
+        raise AppError(500, "SUPABASE_ERROR", "Failed to save activity result")
 
     update_recommendation_status(payload.recommendation_id, payload.completion_status)
 

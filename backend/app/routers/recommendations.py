@@ -1,8 +1,10 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
+from app.errors import AppError
+from app.foundry.intensity_rules import max_allowed_intensity
 from app.foundry.validation import RawRecommendation
 from app.models.schemas import (
     CareMatchInfo,
@@ -31,7 +33,6 @@ def build_foundry_input(context: RecommendationContext, usable_minutes: int | No
     return {
         "energy": context.energy,
         "mood": context.mood,
-        "location": context.location,
         "goal": context.goal,
         "experience": context.experience,
         "recent_activity": context.recent_activity,
@@ -65,12 +66,16 @@ def _to_response(
 def generate_recommendation(payload: RecommendationGenerateRequest) -> RecommendationResponse:
     context = build_recommendation_context(payload.user_id)
     if context.free_period is None:
-        raise HTTPException(status_code=422, detail="No usable free time available today")
+        raise AppError(422, "NO_FREE_SLOT", "No suitable free period was found today.")
 
     local_start = context.free_period.start_time.astimezone()
     foundry_input = build_foundry_input(context)
     raw_rec, recommendation_id = run_foundry_and_persist(
-        payload.user_id, context.free_period.usable_minutes, context.free_period.start_time, foundry_input
+        payload.user_id,
+        context.free_period.usable_minutes,
+        context.free_period.start_time,
+        foundry_input,
+        max_intensity=max_allowed_intensity(context.energy, context.mood),
     )
     return _to_response(recommendation_id, raw_rec, local_start)
 
@@ -82,54 +87,61 @@ def accept_recommendation(recommendation_id: UUID) -> RecommendationStatusRespon
     return RecommendationStatusResponse(recommendation_id=recommendation_id, status="accepted")
 
 
-@router.post("/recommendations/{recommendation_id}/skip", response_model=RecommendationStatusResponse)
-def skip_recommendation(recommendation_id: UUID) -> RecommendationStatusResponse:
-    get_recommendation_row(recommendation_id)  # 404 if missing
-    update_recommendation_status(recommendation_id, "skipped")
-    return RecommendationStatusResponse(recommendation_id=recommendation_id, status="skipped")
+def _regenerate(
+    recommendation_id: UUID,
+    new_status: str,
+    previous_action: str,
+    usable_minutes_override: int | None = None,
+) -> RecommendationResponse:
+    """Shared by shorten/replace/skip: all three reject the current
+    suggestion and ask Foundry for a new one, just with different framing and
+    (for shorten) a smaller time budget."""
+    original = get_recommendation_row(recommendation_id)
+    user_id = UUID(original["user_id"])
+
+    context = build_recommendation_context(user_id)
+    if context.free_period is None:
+        raise AppError(422, "NO_FREE_SLOT", "No suitable free period was found today.")
+
+    if usable_minutes_override is not None:
+        usable_minutes = max(
+            MIN_SHORTEN_MINUTES, min(usable_minutes_override, context.free_period.usable_minutes)
+        )
+    else:
+        usable_minutes = context.free_period.usable_minutes
+
+    local_start = context.free_period.start_time.astimezone()
+    foundry_input = build_foundry_input(context, usable_minutes=usable_minutes)
+
+    update_recommendation_status(recommendation_id, new_status)
+    raw_rec, new_id = run_foundry_and_persist(
+        user_id,
+        usable_minutes,
+        context.free_period.start_time,
+        foundry_input,
+        previous_activity=original["activity_name"],
+        previous_action=previous_action,
+        max_intensity=max_allowed_intensity(context.energy, context.mood),
+    )
+    return _to_response(new_id, raw_rec, local_start)
+
+
+@router.post("/recommendations/{recommendation_id}/skip", response_model=RecommendationResponse)
+def skip_recommendation(recommendation_id: UUID) -> RecommendationResponse:
+    return _regenerate(recommendation_id, "skipped", "skip")
 
 
 @router.post("/recommendations/{recommendation_id}/shorten", response_model=RecommendationResponse)
 def shorten_recommendation(recommendation_id: UUID) -> RecommendationResponse:
     original = get_recommendation_row(recommendation_id)
-    user_id = UUID(original["user_id"])
-
-    context = build_recommendation_context(user_id)
-    if context.free_period is None:
-        raise HTTPException(status_code=422, detail="No usable free time available today")
-
-    new_usable_minutes = max(
-        MIN_SHORTEN_MINUTES,
-        min(original["duration_minutes"] // 2, context.free_period.usable_minutes),
+    return _regenerate(
+        recommendation_id,
+        "shortened",
+        "shorten",
+        usable_minutes_override=original["duration_minutes"] // 2,
     )
-    local_start = context.free_period.start_time.astimezone()
-    foundry_input = build_foundry_input(context, usable_minutes=new_usable_minutes)
-
-    update_recommendation_status(recommendation_id, "shortened")
-    raw_rec, new_id = run_foundry_and_persist(
-        user_id, new_usable_minutes, context.free_period.start_time, foundry_input
-    )
-    return _to_response(new_id, raw_rec, local_start)
 
 
 @router.post("/recommendations/{recommendation_id}/replace", response_model=RecommendationResponse)
 def replace_recommendation(recommendation_id: UUID) -> RecommendationResponse:
-    original = get_recommendation_row(recommendation_id)
-    user_id = UUID(original["user_id"])
-
-    context = build_recommendation_context(user_id)
-    if context.free_period is None:
-        raise HTTPException(status_code=422, detail="No usable free time available today")
-
-    local_start = context.free_period.start_time.astimezone()
-    foundry_input = build_foundry_input(context)
-
-    update_recommendation_status(recommendation_id, "replaced")
-    raw_rec, new_id = run_foundry_and_persist(
-        user_id,
-        context.free_period.usable_minutes,
-        context.free_period.start_time,
-        foundry_input,
-        avoid_activity=original["activity_name"],
-    )
-    return _to_response(new_id, raw_rec, local_start)
+    return _regenerate(recommendation_id, "replaced", "replace")

@@ -2,6 +2,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8001"
 
 export interface User {
   id: string;
+  username: string;
   name: string;
   email: string;
   experience_level: string | null;
@@ -146,14 +147,29 @@ export const OFFLINE_FALLBACK_RECOMMENDATION: RecommendationResponse = {
   },
 };
 
+export class ApiError extends Error {
+  code: string;
+  status: number;
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+    // Backend returns {"error": "CODE", "message": "..."} -- surface that
+    // directly so forms can show a real reason instead of a generic failure.
+    const body = await res.json().catch(() => null);
+    if (body && typeof body.error === "string" && typeof body.message === "string") {
+      throw new ApiError(res.status, body.error, body.message);
+    }
+    throw new ApiError(res.status, "UNKNOWN_ERROR", `${res.status} ${res.statusText}`);
   }
   return res.json() as Promise<T>;
 }
@@ -186,8 +202,8 @@ export function acceptRecommendation(recommendationId: string): Promise<Recommen
   });
 }
 
-export function skipRecommendation(recommendationId: string): Promise<RecommendationStatusResponse> {
-  return request<RecommendationStatusResponse>(`/recommendations/${recommendationId}/skip`, {
+export function skipRecommendation(recommendationId: string): Promise<RecommendationResponse> {
+  return request<RecommendationResponse>(`/recommendations/${recommendationId}/skip`, {
     method: "POST",
   });
 }
@@ -218,6 +234,150 @@ export function getActivityHistory(userId: string): Promise<ActivityHistoryEntry
   return request<ActivityHistoryEntry[]>(`/activities/${userId}/history`);
 }
 
+export function updateCareMatchEnabled(userId: string, enabled: boolean): Promise<User> {
+  return request<User>(`/users/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify({ carematch_enabled: enabled }),
+  });
+}
+
+export type FriendshipStatus = "pending" | "accepted" | "declined";
+
+export interface FriendshipStatusResponse {
+  friendship_id: string;
+  status: FriendshipStatus;
+}
+
+export interface FriendSummary {
+  friendship_id: string;
+  user_id: string;
+  username: string;
+  name: string;
+}
+
+export interface FriendRequestSummary extends FriendSummary {
+  direction: "incoming" | "outgoing";
+}
+
+export interface FriendsListResponse {
+  friends: FriendSummary[];
+}
+
+export interface FriendRequestsResponse {
+  incoming: FriendRequestSummary[];
+  outgoing: FriendRequestSummary[];
+}
+
+export function sendFriendRequest(userId: string, friendUsername: string): Promise<FriendshipStatusResponse> {
+  return request<FriendshipStatusResponse>("/friends/request", {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId, friend_username: friendUsername }),
+  });
+}
+
+export function listFriends(userId: string): Promise<FriendsListResponse> {
+  return request<FriendsListResponse>(`/friends/${userId}`);
+}
+
+export function listFriendRequests(userId: string): Promise<FriendRequestsResponse> {
+  return request<FriendRequestsResponse>(`/friends/${userId}/requests`);
+}
+
+export function acceptFriendRequest(friendshipId: string): Promise<FriendshipStatusResponse> {
+  return request<FriendshipStatusResponse>(`/friends/requests/${friendshipId}/accept`, {
+    method: "PATCH",
+  });
+}
+
+export function declineFriendRequest(friendshipId: string): Promise<FriendshipStatusResponse> {
+  return request<FriendshipStatusResponse>(`/friends/requests/${friendshipId}/decline`, {
+    method: "PATCH",
+  });
+}
+
 export function formatLocalTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// ============================================================
+// CareMatch: overlap matches + activity invitations
+// ============================================================
+export interface CareMatchMatch {
+  friend_id: string;
+  username: string;
+  name: string;
+  overlap_start: string;
+  overlap_end: string;
+  usable_minutes: number;
+  suggested_activity: string | null;
+  suggested_category: Category | null;
+}
+
+export interface CareMatchMatchesResponse {
+  matches: CareMatchMatch[];
+}
+
+export type InvitationStatus = "pending" | "accepted" | "declined" | "cancelled";
+
+export interface ActivityInvitation {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  receiver_id: string;
+  receiver_name: string;
+  recommendation_id: string | null;
+  activity_name: string;
+  proposed_start: string;
+  proposed_end: string;
+  location: string | null;
+  status: InvitationStatus;
+  created_at: string;
+  direction: "incoming" | "outgoing";
+}
+
+export interface CareMatchInvitationsResponse {
+  incoming: ActivityInvitation[];
+  outgoing: ActivityInvitation[];
+}
+
+export interface ActivityInvitationStatusResponse {
+  invitation_id: string;
+  status: InvitationStatus;
+}
+
+export interface CareMatchInvitationPayload {
+  sender_id: string;
+  receiver_id: string;
+  activity_name: string;
+  proposed_start: string;
+  proposed_end: string;
+  location?: string;
+  recommendation_id?: string;
+}
+
+export function getCareMatchMatches(userId: string): Promise<CareMatchMatchesResponse> {
+  return request<CareMatchMatchesResponse>(`/carematch/${userId}/matches`);
+}
+
+export function sendCareMatchInvitation(payload: CareMatchInvitationPayload): Promise<ActivityInvitation> {
+  return request<ActivityInvitation>("/carematch/invitations", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listCareMatchInvitations(userId: string): Promise<CareMatchInvitationsResponse> {
+  return request<CareMatchInvitationsResponse>(`/carematch/invitations/${userId}`);
+}
+
+export function acceptCareMatchInvitation(invitationId: string): Promise<ActivityInvitationStatusResponse> {
+  return request<ActivityInvitationStatusResponse>(`/carematch/invitations/${invitationId}/accept`, {
+    method: "PATCH",
+  });
+}
+
+export function declineCareMatchInvitation(invitationId: string): Promise<ActivityInvitationStatusResponse> {
+  return request<ActivityInvitationStatusResponse>(`/carematch/invitations/${invitationId}/decline`, {
+    method: "PATCH",
+  });
 }

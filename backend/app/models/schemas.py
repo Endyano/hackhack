@@ -9,10 +9,11 @@ from pydantic import BaseModel, EmailStr, Field
 RecommendationStatus = Literal[
     "pending", "accepted", "replaced", "shortened", "skipped", "completed", "partially_completed"
 ]
-InvitationStatus = Literal["pending", "accepted", "declined", "cancelled"]
-FriendshipStatus = Literal["pending", "accepted", "declined"]
 Category = Literal["mental", "physical", "nutritional"]
 CompletionStatus = Literal["completed", "partially_completed", "skipped"]
+FriendshipStatus = Literal["pending", "accepted", "declined"]
+FriendRequestDirection = Literal["incoming", "outgoing"]
+InvitationStatus = Literal["pending", "accepted", "declined", "cancelled"]
 
 
 # ============================================================
@@ -20,6 +21,7 @@ CompletionStatus = Literal["completed", "partially_completed", "skipped"]
 # ============================================================
 class User(BaseModel):
     id: UUID
+    username: str
     name: str
     email: EmailStr
     experience_level: str | None = None
@@ -30,6 +32,7 @@ class User(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    username: str | None = None
     name: str | None = None
     experience_level: str | None = None
     primary_goal: str | None = None
@@ -118,33 +121,6 @@ class ActivityHistory(BaseModel):
 
 
 # ============================================================
-# FRIENDSHIPS
-# ============================================================
-class Friendship(BaseModel):
-    id: UUID
-    user_id: UUID
-    friend_id: UUID
-    status: FriendshipStatus = "pending"
-    carematch_enabled: bool = True
-
-
-# ============================================================
-# ACTIVITY_INVITATIONS
-# ============================================================
-class ActivityInvitation(BaseModel):
-    id: UUID
-    sender_id: UUID
-    receiver_id: UUID
-    recommendation_id: UUID | None = None
-    activity_name: str
-    proposed_start: datetime
-    proposed_end: datetime
-    location: str | None = None
-    status: InvitationStatus = "pending"
-    created_at: datetime
-
-
-# ============================================================
 # /recommendation-context/{user_id} aggregator response
 # ============================================================
 class RecentActivity(BaseModel):
@@ -229,3 +205,100 @@ class ActivityHistoryEntry(BaseModel):
     completion_status: str | None = None
     feedback: str | None = None
     completed_at: datetime
+
+
+# ============================================================
+# CareMatch: friend requests (POST /friends/request, GET /friends/{id},
+# GET /friends/{id}/requests, PATCH /friends/requests/{id}/accept|decline)
+# ============================================================
+class FriendRequestCreate(BaseModel):
+    user_id: UUID
+    friend_username: str
+
+
+class FriendshipStatusResponse(BaseModel):
+    friendship_id: UUID
+    status: FriendshipStatus
+
+
+class FriendSummary(BaseModel):
+    friendship_id: UUID
+    user_id: UUID
+    username: str
+    name: str
+
+
+class FriendRequestSummary(BaseModel):
+    friendship_id: UUID
+    user_id: UUID
+    username: str
+    name: str
+    direction: FriendRequestDirection
+
+
+class FriendsListResponse(BaseModel):
+    friends: list[FriendSummary] = Field(default_factory=list)
+
+
+class FriendRequestsResponse(BaseModel):
+    incoming: list[FriendRequestSummary] = Field(default_factory=list)
+    outgoing: list[FriendRequestSummary] = Field(default_factory=list)
+
+
+# ============================================================
+# CareMatch: overlap detection (GET /carematch/{user_id}/matches) and
+# activity invitations (POST /carematch/invitations, GET
+# /carematch/invitations/{user_id}, PATCH .../accept|decline)
+# ============================================================
+class CareMatchMatch(BaseModel):
+    """A friend whose free time today overlaps with the current user's, per
+    the deterministic backend overlap calculation (no AI involved)."""
+
+    friend_id: UUID
+    username: str
+    name: str
+    overlap_start: datetime
+    overlap_end: datetime
+    usable_minutes: int
+    suggested_activity: str | None = None
+    suggested_category: Category | None = None
+
+
+class CareMatchMatchesResponse(BaseModel):
+    matches: list[CareMatchMatch] = Field(default_factory=list)
+
+
+class CareMatchInvitationCreate(BaseModel):
+    sender_id: UUID
+    receiver_id: UUID
+    activity_name: str
+    proposed_start: datetime
+    proposed_end: datetime
+    location: str | None = None
+    recommendation_id: UUID | None = None
+
+
+class ActivityInvitation(BaseModel):
+    id: UUID
+    sender_id: UUID
+    sender_name: str
+    receiver_id: UUID
+    receiver_name: str
+    recommendation_id: UUID | None = None
+    activity_name: str
+    proposed_start: datetime
+    proposed_end: datetime
+    location: str | None = None
+    status: InvitationStatus
+    created_at: datetime
+    direction: FriendRequestDirection
+
+
+class CareMatchInvitationsResponse(BaseModel):
+    incoming: list[ActivityInvitation] = Field(default_factory=list)
+    outgoing: list[ActivityInvitation] = Field(default_factory=list)
+
+
+class ActivityInvitationStatusResponse(BaseModel):
+    invitation_id: UUID
+    status: InvitationStatus

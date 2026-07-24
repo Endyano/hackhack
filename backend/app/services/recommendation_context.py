@@ -1,8 +1,7 @@
 from datetime import date as date_cls, datetime, time
 from uuid import UUID
 
-from fastapi import HTTPException
-
+from app.errors import AppError
 from app.models.schemas import (
     DailyCheckIn,
     RecentActivity,
@@ -29,8 +28,8 @@ def build_recommendation_context(user_id: UUID) -> RecommendationContext:
     supabase = get_supabase()
 
     user_result = supabase.table("users").select("*").eq("id", str(user_id)).maybe_single().execute()
-    if not user_result.data:
-        raise HTTPException(status_code=404, detail="User not found")
+    if not user_result or not user_result.data:
+        raise AppError(404, "USER_NOT_FOUND", "User not found")
     user = user_result.data
 
     prefs_result = (
@@ -40,7 +39,11 @@ def build_recommendation_context(user_id: UUID) -> RecommendationContext:
         .maybe_single()
         .execute()
     )
-    preferences = UserPreferences.model_validate(prefs_result.data) if prefs_result.data else None
+    preferences = (
+        UserPreferences.model_validate(prefs_result.data)
+        if prefs_result and prefs_result.data
+        else None
+    )
 
     check_in_result = (
         supabase.table("daily_check_ins")

@@ -2,10 +2,10 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import HTTPException
-
+from app.errors import AppError
 from app.foundry.client import FoundryError, generate_recommendation_raw
 from app.foundry.fallback import fallback_for
+from app.foundry.prompts import PreviousAction
 from app.foundry.validation import FoundryValidationError, RawRecommendation, parse_and_validate
 from app.services.supabase_client import get_supabase
 
@@ -19,18 +19,22 @@ def run_foundry_and_persist(
     usable_minutes: int,
     start_time: datetime,
     foundry_context: dict,
-    avoid_activity: str | None = None,
+    previous_activity: str | None = None,
+    previous_action: PreviousAction | None = None,
+    max_intensity: str = "hard",
 ) -> tuple[RawRecommendation, UUID]:
     """Calls Foundry (with one retry), falls back to the hardcoded
     recommendation if both attempts fail, and persists whichever result to
-    activity_recommendations. Shared by generate/shorten/replace so the
-    retry+fallback behavior stays identical across all three."""
+    activity_recommendations. Shared by generate/shorten/replace/skip so the
+    retry+fallback behavior stays identical across all four."""
     raw_rec: RawRecommendation | None = None
     last_error: Exception | None = None
     for attempt in range(1, MAX_FOUNDRY_ATTEMPTS + 1):
         try:
-            raw_text = generate_recommendation_raw(foundry_context, usable_minutes, avoid_activity)
-            raw_rec = parse_and_validate(raw_text, usable_minutes)
+            raw_text = generate_recommendation_raw(
+                foundry_context, usable_minutes, previous_activity, previous_action, max_intensity
+            )
+            raw_rec = parse_and_validate(raw_text, usable_minutes, max_intensity)
             break
         except (FoundryError, FoundryValidationError) as exc:
             last_error = exc
@@ -58,7 +62,7 @@ def run_foundry_and_persist(
         .execute()
     )
     if not insert_result.data:
-        raise HTTPException(status_code=500, detail="Failed to save recommendation")
+        raise AppError(500, "SUPABASE_ERROR", "Failed to save recommendation")
     return raw_rec, UUID(insert_result.data[0]["id"])
 
 
@@ -71,8 +75,8 @@ def get_recommendation_row(recommendation_id: UUID) -> dict:
         .maybe_single()
         .execute()
     )
-    if not result.data:
-        raise HTTPException(status_code=404, detail="Recommendation not found")
+    if not result or not result.data:
+        raise AppError(404, "RECOMMENDATION_NOT_FOUND", "Recommendation not found")
     return result.data
 
 
@@ -84,6 +88,6 @@ def update_recommendation_status(recommendation_id: UUID, status: str) -> dict:
         .eq("id", str(recommendation_id))
         .execute()
     )
-    if not result.data:
-        raise HTTPException(status_code=404, detail="Recommendation not found")
+    if not result or not result.data:
+        raise AppError(404, "RECOMMENDATION_NOT_FOUND", "Recommendation not found")
     return result.data[0]

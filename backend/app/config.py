@@ -10,10 +10,10 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_anon_key: str = ""
 
-    azure_ai_foundry_project: str = ""
-    azure_ai_foundry_project_endpoint: str = ""
-    azure_ai_agent_id: str = ""
-    azure_ai_agent_name: str = ""
+    azure_ai_foundry_endpoint: str = ""
+    azure_ai_foundry_api_key: str = ""
+    azure_ai_foundry_project: str = ""  # portal reference only; not called directly
+    azure_ai_deployment: str = ""
     azure_ai_foundry_timeout_seconds: float = 15.0
 
     backend_port: int = 8000
