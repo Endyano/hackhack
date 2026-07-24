@@ -13,16 +13,23 @@ type PageShellProps = {
   title: string;
   description?: string;
   children: ReactNode;
+  contentMaxWidth?: string;
+  backgroundImage?: string;
 };
 
-export default function PageShell({ eyebrow, title, description, children }: PageShellProps) {
+export default function PageShell({ eyebrow, title, description, children, contentMaxWidth = '1180px', backgroundImage }: PageShellProps) {
   return (
     <div
       style={{
         minHeight: '100vh',
         width: '100%',
         backgroundColor: bgDark,
-        backgroundImage: `radial-gradient(circle at 85% 0%, rgba(212, 255, 62, 0.1) 0%, transparent 55%)`,
+        backgroundImage: backgroundImage
+          ? `linear-gradient(180deg, rgba(9, 12, 11, 0.92) 0%, rgba(9, 12, 11, 0.82) 45%, rgba(9, 12, 11, 0.96) 100%), radial-gradient(circle at 85% 0%, rgba(212, 255, 62, 0.1) 0%, transparent 55%), url('${backgroundImage}')`
+          : `radial-gradient(circle at 85% 0%, rgba(212, 255, 62, 0.1) 0%, transparent 55%)`,
+        backgroundSize: backgroundImage ? 'cover, cover, cover' : undefined,
+        backgroundPosition: backgroundImage ? 'center, center, center' : undefined,
+        backgroundAttachment: backgroundImage ? 'fixed, fixed, fixed' : undefined,
         color: '#f8fafc',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
@@ -38,7 +45,7 @@ export default function PageShell({ eyebrow, title, description, children }: Pag
 
       <AppNav />
 
-      <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '32px 5% 60px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      <div style={{ maxWidth: contentMaxWidth, margin: '0 auto', padding: '32px 5% 60px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
         <div>
           <Link href="/dashboard" className="back-link" style={{ color: textGray, fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>
             ← Kembali ke Dashboard

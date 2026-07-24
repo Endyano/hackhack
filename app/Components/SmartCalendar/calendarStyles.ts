@@ -8,6 +8,7 @@ export const typeColor: Record<CalendarEntry['type'], string> = {
   meal: '#FBBF24',
   study: '#A78BFA',
   activity: accentLime,
+  match: accentLime,
 };
 
 export const typeLabel: Record<CalendarEntry['type'], string> = {
@@ -16,6 +17,7 @@ export const typeLabel: Record<CalendarEntry['type'], string> = {
   meal: 'Makan',
   study: 'Belajar',
   activity: 'AI Suggestion',
+  match: 'AI Match ✨',
 };
 
 export function pad(n: number) {

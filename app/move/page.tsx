@@ -23,6 +23,7 @@ export default function MovePage() {
       eyebrow="Fitur · Move"
       title="Move"
       description="Sesuaikan rekomendasi aktivitas hari ini berdasarkan mood, energi, dan waktu yang kamu punya."
+      backgroundImage="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1920&q=80"
     >
       {todaysCheckin && (
         <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>

@@ -14,6 +14,7 @@ export default function ProgressPage() {
       eyebrow="Fitur · Progress"
       title="Progress"
       description="Pantau riwayat aktivitas dan kesejahteraan fisikmu dari waktu ke waktu."
+      backgroundImage="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1920&q=80"
     >
       <div style={{ borderRadius: '28px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', padding: '26px' }}>
         <h2 style={{ margin: '0 0 18px', fontSize: '1.4rem', fontWeight: 800 }}>Riwayat Aktivitas</h2>

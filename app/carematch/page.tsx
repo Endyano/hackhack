@@ -1,79 +1,130 @@
 'use client';
 
+import { useMemo, useState, type FormEvent } from 'react';
 import PageShell from '../Components/PageShell';
+import type { CareMatchFriend, FreeSlot } from '../Components/DemoData';
 import { useDemoState } from '../Components/DemoStateContext';
 
 const bgDark = '#090C0B';
 const accentLime = '#D4FF3E';
 
+function toMinutes(time: string) {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function getOverlap(ownSlots: FreeSlot[], friendSlots: FreeSlot[]) {
+  for (const ownSlot of ownSlots) {
+    for (const friendSlot of friendSlots) {
+      const start = Math.max(toMinutes(ownSlot.start), toMinutes(friendSlot.start));
+      const end = Math.min(toMinutes(ownSlot.end), toMinutes(friendSlot.end));
+      if (start < end) {
+        return {
+          start: `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`,
+          end: `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`,
+        };
+      }
+    }
+  }
+  return null;
+}
+
 export default function CareMatchPage() {
-  const { currentUser, invitationState, setInvitationState } = useDemoState();
+  const {
+    currentUser,
+    friends,
+    careMatchInvites,
+    addFriend,
+    sendCareMatchInvite,
+    respondToCareMatchInvite,
+  } = useDemoState();
+  const [friendName, setFriendName] = useState('');
+
+  const availableFriends = useMemo(
+    () => friends.flatMap((friend) => {
+      const overlap = getOverlap(currentUser.freeSlots, friend.freeSlots);
+      return overlap ? [{ friend, overlap }] : [];
+    }),
+    [currentUser.freeSlots, friends],
+  );
+  const incomingInvites = careMatchInvites.filter((invite) => invite.toId === currentUser.id && invite.status === 'pending');
+  const sentInvites = careMatchInvites.filter((invite) => invite.fromId === currentUser.id);
+
+  const handleAddFriend = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    addFriend(friendName);
+    setFriendName('');
+  };
+
+  const inviteFriend = (friend: CareMatchFriend, start: string, end: string) => {
+    sendCareMatchInvite(friend, 'Easy run together', start, end);
+  };
 
   return (
     <PageShell
       eyebrow="Fitur · CareMatch"
       title="CareMatch"
-      description="Temukan teman untuk beraktivitas bersama dan bikin gerak tubuh terasa lebih menyenangkan."
+      description="Sinkronkan teman, temukan waktu luang yang sama, lalu ajak mereka bergerak bersama."
+      backgroundImage="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1920&q=80"
     >
-      <div
-        style={{
-          padding: '26px',
-          borderRadius: '28px',
-          background: 'linear-gradient(180deg, rgba(212, 255, 62, 0.06), rgba(15, 23, 42, 0.95))',
-          border: '1px solid rgba(212, 255, 62, 0.2)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>Cari teman aktivitas</h3>
-          <span style={{ color: accentLime, fontSize: '0.9rem', fontWeight: 700 }}>Partner ready</span>
-        </div>
-        <p style={{ margin: '0 0 18px', color: '#cbd5e1', lineHeight: 1.7 }}>
-          Daniel tersedia pada {currentUser.recommendation.overlapStart} &mdash; {currentUser.recommendation.overlapEnd}. Tawarkan aktivitas bersama untuk menjaga konsistensi.
-        </p>
-        <button
-          onClick={() => setInvitationState('sent')}
-          className="dash-btn"
-          style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: accentLime, color: bgDark, fontWeight: 800, cursor: 'pointer' }}
-        >
-          Undang {currentUser.recommendation.friendName}
-        </button>
-        {invitationState === 'sent' && (
-          <p style={{ margin: '14px 0 0 0', color: '#cbd5e1', fontSize: '13px' }}>Undangan terkirim. Menunggu tanggapan.</p>
-        )}
-      </div>
-
-      {currentUser.id === 'daniel' && (
-        <div style={{ padding: '26px', borderRadius: '28px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      {incomingInvites.length > 0 && (
+        <section style={{ padding: '24px', borderRadius: '28px', background: 'rgba(212, 255, 62, 0.1)', border: '1px solid rgba(212, 255, 62, 0.45)' }}>
           <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            Fitur · Undangan Masuk
+            Notifikasi CareMatch · {incomingInvites.length} baru
           </p>
-          <h3 style={{ margin: '10px 0 14px', fontSize: '1.2rem', fontWeight: 800 }}>Ajakan dari Eric</h3>
-          <p style={{ margin: '0 0 18px', color: '#cbd5e1', lineHeight: 1.7 }}>
-            Eric mengundangmu untuk easy run 30 menit pada 16:30.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <button
-              onClick={() => setInvitationState('accepted')}
-              className="dash-btn"
-              style={{ padding: '14px', borderRadius: '100px', border: 'none', background: accentLime, color: bgDark, fontWeight: 800, cursor: 'pointer' }}
-            >
-              Terima
-            </button>
-            <button
-              onClick={() => setInvitationState('declined')}
-              className="dash-btn"
-              style={{ padding: '14px', borderRadius: '100px', border: '1px solid rgba(248, 113, 113, 0.35)', background: 'transparent', color: '#fbcfe8', cursor: 'pointer', fontWeight: 700 }}
-            >
-              Tolak
-            </button>
-          </div>
-          {invitationState !== 'pending' && (
-            <p style={{ margin: '16px 0 0 0', color: '#cbd5e1', fontSize: '13px' }}>
-              Status undangan: <strong>{invitationState}</strong>.
-            </p>
-          )}
-        </div>
+          {incomingInvites.map((invite) => (
+            <div key={invite.id} style={{ marginTop: '14px', padding: '16px', borderRadius: '18px', background: 'rgba(9,12,11,0.5)' }}>
+              <p style={{ margin: 0, fontWeight: 800 }}>{invite.fromName} mengajakmu {invite.activity.toLowerCase()}.</p>
+              <p style={{ margin: '6px 0 14px', color: '#cbd5e1', fontSize: '14px' }}>Waktu yang cocok: {invite.start}–{invite.end}</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                <button onClick={() => respondToCareMatchInvite(invite.id, 'accepted')} className="dash-btn" style={{ padding: '10px 18px', borderRadius: '100px', border: 'none', background: accentLime, color: bgDark, fontWeight: 800, cursor: 'pointer' }}>Terima</button>
+                <button onClick={() => respondToCareMatchInvite(invite.id, 'declined')} className="dash-btn" style={{ padding: '10px 18px', borderRadius: '100px', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#e2e8f0', fontWeight: 700, cursor: 'pointer' }}>Tolak</button>
+              </div>
+            </div>
+          ))}
+        </section>
       )}
+
+      <section style={{ padding: '26px', borderRadius: '28px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+          <div>
+            <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Teman CareMatch</p>
+            <h3 style={{ margin: '8px 0 0', fontSize: '1.2rem', fontWeight: 800 }}>Tambah teman untuk disinkronkan</h3>
+          </div>
+          <span style={{ color: '#cbd5e1', fontSize: '13px' }}>{friends.length} teman tersambung</span>
+        </div>
+        <form onSubmit={handleAddFriend} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '18px' }}>
+          <input value={friendName} onChange={(event) => setFriendName(event.target.value)} placeholder="Nama teman, mis. Nadia" aria-label="Nama teman" style={{ flex: '1 1 240px', minWidth: 0, borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)', color: 'white', padding: '12px 14px', outline: 'none' }} />
+          <button type="submit" disabled={!friendName.trim()} className="dash-btn" style={{ padding: '12px 20px', borderRadius: '100px', border: 'none', background: friendName.trim() ? accentLime : 'rgba(212,255,62,0.25)', color: bgDark, fontWeight: 800, cursor: friendName.trim() ? 'pointer' : 'not-allowed' }}>+ Tambah teman</button>
+        </form>
+      </section>
+
+      <section style={{ padding: '26px', borderRadius: '28px', background: 'linear-gradient(180deg, rgba(212, 255, 62, 0.06), rgba(15, 23, 42, 0.95))', border: '1px solid rgba(212, 255, 62, 0.2)' }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Kalender tersinkron</p>
+        <h3 style={{ margin: '10px 0 6px', fontSize: '1.25rem', fontWeight: 800 }}>Teman yang tersedia saat kamu luang</h3>
+        <p style={{ margin: '0 0 18px', color: '#cbd5e1', lineHeight: 1.6 }}>CareMatch membandingkan blok waktu luangmu dengan kalender teman yang tersambung.</p>
+
+        {availableFriends.length > 0 ? (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {availableFriends.map(({ friend, overlap }) => {
+              const alreadySent = sentInvites.some((invite) => invite.toId === friend.id && invite.status === 'pending');
+              return (
+                <div key={friend.id} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '18px', borderRadius: '18px', background: 'rgba(9,12,11,0.52)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 800 }}>{friend.name} tersedia</p>
+                    <p style={{ margin: '5px 0 0', color: '#cbd5e1', fontSize: '14px' }}>Waktu luang yang sama: {overlap.start}–{overlap.end}</p>
+                  </div>
+                  <button onClick={() => inviteFriend(friend, overlap.start, overlap.end)} disabled={alreadySent} className="dash-btn" style={{ padding: '11px 18px', borderRadius: '100px', border: 'none', background: alreadySent ? 'rgba(212,255,62,0.22)' : accentLime, color: bgDark, fontWeight: 800, cursor: alreadySent ? 'default' : 'pointer' }}>
+                    {alreadySent ? 'Undangan terkirim' : 'Ajak lari bersama'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: '#cbd5e1' }}>Belum ada teman yang memiliki waktu luang yang sama. Tambahkan teman lain untuk mencoba lagi.</p>
+        )}
+      </section>
     </PageShell>
   );
 }

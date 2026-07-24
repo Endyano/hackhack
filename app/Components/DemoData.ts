@@ -5,7 +5,28 @@ export type CalendarEntry = {
   title: string;
   start: string;
   end: string;
-  type: 'class' | 'free' | 'meal' | 'study' | 'activity';
+  type: 'class' | 'free' | 'meal' | 'study' | 'activity' | 'match';
+  note?: string;
+};
+
+export type FreeSlot = { start: string; end: string; usableMinutes: number };
+
+export type CareMatchFriend = {
+  id: string;
+  name: string;
+  freeSlots: FreeSlot[];
+};
+
+export type CareMatchInvite = {
+  id: string;
+  fromId: string;
+  fromName: string;
+  toId: string;
+  toName: string;
+  activity: string;
+  start: string;
+  end: string;
+  status: 'pending' | 'accepted' | 'declined';
 };
 
 export type DemoUser = {
@@ -19,7 +40,7 @@ export type DemoUser = {
   goal: string;
   recentActivity: string;
   calendar: CalendarEntry[];
-  freeSlots: { start: string; end: string; usableMinutes: number }[];
+  freeSlots: FreeSlot[];
   recommendation: {
     activity: string;
     category: string;
@@ -49,6 +70,13 @@ export const demoUsers: DemoUser[] = [
     calendar: [
       { title: 'Class', start: '14:00', end: '16:00', type: 'class' },
       { title: 'Free', start: '16:00', end: '18:00', type: 'free' },
+      {
+        title: '🏃 Easy Run with Daniel',
+        start: '16:30',
+        end: '17:30',
+        type: 'match',
+        note: 'Kamu dan Daniel sama-sama free, dan energi Daniel lagi tinggi!',
+      },
     ],
     freeSlots: [{ start: '16:00', end: '18:00', usableMinutes: 110 }],
     recommendation: {
@@ -81,9 +109,16 @@ export const demoUsers: DemoUser[] = [
     recentActivity: 'Rest day yesterday',
     calendar: [
       { title: 'Study', start: '13:00', end: '14:30', type: 'class' },
-      { title: 'Free', start: '16:30', end: '17:30', type: 'free' },
+      { title: 'Free', start: '16:30', end: '18:30', type: 'free' },
+      {
+        title: '🏃 Easy Run with Eric',
+        start: '17:00',
+        end: '17:30',
+        type: 'match',
+        note: 'Kamu dan Eric sama-sama free saat ini.',
+      },
     ],
-    freeSlots: [{ start: '16:30', end: '17:30', usableMinutes: 45 }],
+    freeSlots: [{ start: '16:30', end: '18:30', usableMinutes: 120 }],
     recommendation: {
       activity: 'Easy run',
       category: 'physical',

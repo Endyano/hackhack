@@ -129,13 +129,13 @@ export default function MainApp() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '32px', color: textGray, fontSize: '30px', fontWeight: '600' }}>
-          <span className="nav-link" style={{ cursor: 'pointer', color: 'white' }}>How It Works</span>
+          <a href="#how-it-works" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>How It Works</a>
           <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
-          <span className="nav-link" style={{ cursor: 'pointer', color: 'white' }}>Movement Guide</span>
+          <a href="#movement-guide" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>Movement Guide</a>
           <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
-          <span className="nav-link" style={{ cursor: 'pointer', color: 'white' }}>What's New</span>
+          <a href="#whats-new" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>What's New</a>
           <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
-          <span className="nav-link" style={{ cursor: 'pointer', color: 'white' }}>About</span>
+          <a href="#about" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>About</a>
         </div>
 
         <button 
@@ -206,15 +206,16 @@ export default function MainApp() {
             <div className="animate-phone-levitate" style={{ position: 'relative', zIndex: 2 }}>
 
               {/* FLOATING WIDGETS */}
-              <div style={{ position: 'absolute', right: '-25%', top: '25%', display: 'flex', flexDirection: 'column', gap: '50px', zIndex: 10, transform: 'translateZ(60px)' }}>
+              <div style={{ position: 'absolute', right: '-30%', top: '25%', display: 'flex', flexDirection: 'column', gap: '90px', zIndex: 10, transform: 'translateZ(60px)' }}>
                 
                 <div style={{ 
                   opacity: 0, 
                   animation: 'popOut 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards 1.2s, floatWidget 4s ease-in-out infinite 1.8s', 
-                  display: 'flex', alignItems: 'center', gap: '20px', padding: '20px 32px', backgroundColor: 'rgba(10, 15, 13, 0.9)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: '100px', backdropFilter: 'blur(12px)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' 
+                  display: 'flex', alignItems: 'center', gap: '20px', padding: '20px 32px', backgroundColor: 'rgba(10, 15, 13, 0.9)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: '100px', backdropFilter: 'blur(12px)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+
                 }}>
                   <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=80&q=80" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="Health" />
-                  <div style={{ fontSize: '20px', fontWeight: '700', lineHeight: '1.2' }}>Calendar<br/><span style={{ color: textGray, fontSize: '16px', fontWeight: '500' }}>Connected</span></div>
+                  <div style={{ fontSize: '20px', fontWeight: '500', lineHeight: '1.2' }}>Calendar<br/><span style={{ color: textGray, fontSize: '16px', fontWeight: '500' }}>Connected</span></div>
                 </div>
 
                 <div style={{ 
@@ -223,22 +224,23 @@ export default function MainApp() {
                   display: 'flex', alignItems: 'center', gap: '20px', padding: '20px 32px', backgroundColor: 'rgba(10, 15, 13, 0.9)', border: '2px solid rgba(255,255,255,0.1)', borderRadius: '100px', backdropFilter: 'blur(12px)', marginLeft: '80px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' 
                 }}>
                   <img src="https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=80&q=80" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} alt="Wearables" />
-                  <div style={{ fontSize: '20px', fontWeight: '700', lineHeight: '1.2' }}>CareMatch<br/><span style={{ color: textGray, fontSize: '16px', fontWeight: '500' }}>Synced</span></div>
+                  <div style={{ fontSize: '20px', fontWeight: '', lineHeight: '1.2' }}>CareMatch<br/><span style={{ color: textGray, fontSize: '16px', fontWeight: '500' }}>Synced</span></div>
                 </div>
                 
                 {/* SVG Connector */}
                 <svg className="animate-fade-up" style={{ 
                   animationDelay: '1.6s', 
                   position: 'absolute', 
-                  left: '-30px', 
-                  top: '70px',    
-                  width: '200px', 
-                  height: '200px', 
-                  pointerEvents: 'none', 
-                  zIndex: -1 
+                  left: '30px', 
+                  top: '110px',    
+                  width: '1000px',
+                  height: '200px',
+                  overflow: 'visible',
+                  pointerEvents: 'none',
+                  zIndex: -1
                 }}>
-                  <path d="M 0, 80 Q 60, 80 150, 20" fill="none" stroke={accentLime} strokeWidth="3" strokeDasharray="8 8" opacity="0.6" />
-                  <path d="M 0, 80 Q 60, 80 150, 130" fill="none" stroke={accentLime} strokeWidth="3" strokeDasharray="8 8" opacity="0.6" />
+                  <path d="M 0, 80 Q 60, 0 0, -84" fill="none" stroke={accentLime} strokeWidth="3" strokeDasharray="8 8" opacity="0.6" />
+                  <path d="M 0, 80 Q 50, 95 80, 99" fill="none" stroke={accentLime} strokeWidth="3" strokeDasharray="8 8" opacity="0.6" />
                 </svg>
               </div>
               
@@ -359,6 +361,96 @@ export default function MainApp() {
           </div>
         </div>
       </main>
+
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" style={{ padding: '140px 5% 100px', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>HOW IT WORKS</p>
+        <h2 style={{ margin: '16px 0 60px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
+          From your schedule to one clear signal.
+        </h2>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '30px' }}>
+          {[
+            { step: '01', emoji: '📝', title: 'Check in', text: 'Log your mood and energy in seconds — no lengthy tracker to fill out.' },
+            { step: '02', emoji: '🗓️', title: 'Sync your calendar', text: 'CareShift reads your schedule to see where the real free time is.' },
+            { step: '03', emoji: '🎯', title: 'Get your Daily Signal', text: 'Mood, energy, and calendar combine into one decision: push, move, recover, or reset.' },
+            { step: '04', emoji: '🤝', title: 'Move with CareMatch', text: 'See who else is free right now and pair up for an easier, more enjoyable session.' },
+          ].map((item) => (
+            <div key={item.step} style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '32px' }}>
+              <div style={{ color: accentLime, fontSize: '16px', fontWeight: '900', letterSpacing: '2px' }}>{item.step}</div>
+              <div style={{ fontSize: '36px', margin: '16px 0' }}>{item.emoji}</div>
+              <h3 style={{ margin: '0 0 12px', fontSize: '22px', fontWeight: '800' }}>{item.title}</h3>
+              <p style={{ margin: 0, color: textGray, fontSize: '16px', lineHeight: '1.6' }}>{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* MOVEMENT GUIDE */}
+      <section id="movement-guide" style={{ padding: '100px 5%', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>MOVEMENT GUIDE</p>
+        <h2 style={{ margin: '16px 0 60px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
+          Four signals, one clear next move.
+        </h2>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '30px' }}>
+          {[
+            { title: 'MOVE', text: 'You have energy and a free window. Keep the day alive with a real session.' },
+            { title: 'SYNC', text: 'Your schedule is tight. Fit in something light between the gaps you already have.' },
+            { title: 'MATCH', text: 'Motivation is low but company helps. CareMatch finds someone free to join you.' },
+            { title: 'RECOVER', text: 'Mood and energy are low. Rest is the productive choice today — no guilt.' },
+          ].map((item) => (
+            <div key={item.title} style={{ border: `2px solid ${accentLime}`, borderRadius: '24px', padding: '32px', backgroundColor: 'rgba(212, 255, 62, 0.03)' }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: '28px', fontWeight: '900', color: accentLime }}>{item.title}</h3>
+              <p style={{ margin: 0, color: '#CBD5E1', fontSize: '16px', lineHeight: '1.6' }}>{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* WHAT'S NEW */}
+      <section id="whats-new" style={{ padding: '100px 5%', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>WHAT'S NEW</p>
+        <h2 style={{ margin: '16px 0 60px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
+          Fresh off the hackathon build.
+        </h2>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '900px' }}>
+          {[
+            { tag: 'NEW', title: 'Smart Calendar', text: 'CareShift now reads your calendar directly to surface real free time for movement.' },
+            { tag: 'NEW', title: 'CareMatch', text: 'Get paired with someone else who is free right now, so moving feels less like a chore.' },
+            { tag: 'IMPROVED', title: 'Mood & Energy check-in', text: 'A faster daily check-in that feeds straight into your Daily Signal.' },
+          ].map((item) => (
+            <div key={item.title} style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '24px' }}>
+              <span style={{ backgroundColor: accentLime, color: bgDark, fontSize: '13px', fontWeight: '900', padding: '6px 16px', borderRadius: '100px', flexShrink: 0 }}>{item.tag}</span>
+              <div>
+                <h3 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: '800' }}>{item.title}</h3>
+                <p style={{ margin: 0, color: textGray, fontSize: '16px', lineHeight: '1.6' }}>{item.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ABOUT */}
+      <section id="about" style={{ padding: '100px 5% 160px', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>ABOUT</p>
+        <h2 style={{ margin: '16px 0 32px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
+          Built for people who don't need another tracker.
+        </h2>
+        <p style={{ margin: '0 0 40px', fontSize: '22px', color: '#E2E8F0', maxWidth: '850px', lineHeight: '1.6' }}>
+          CareShift isn't here to count your steps. It's here to answer one question every day:
+          what should you actually do next? By combining your calendar, your mood, and your energy,
+          CareShift turns raw data into a single, guilt-free decision — and CareMatch makes sure you
+          don't have to make that decision alone.
+        </p>
+        <button
+          className="btn-primary"
+          onClick={handleOpenLogin}
+          style={{ backgroundColor: accentLime, color: '#000', padding: '24px 48px', borderRadius: '100px', cursor: 'pointer', fontSize: '26px', fontWeight: '900', border: 'none' }}>
+          Launch Hackathon MVP
+        </button>
+      </section>
     </div>
   );
 }

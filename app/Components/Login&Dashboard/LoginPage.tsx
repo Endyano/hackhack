@@ -132,8 +132,8 @@ export default function LoginPage({
           position: 'absolute',
           top: '50%',
           left: '50%',
-          width: '780px',
-          height: '780px',
+          width: '900px',
+          height: '900px',
           transform: 'translate(-50%, -50%)',
           borderRadius: '50%',
           border: '1px solid rgba(212, 255, 62, 0.08)',
@@ -174,55 +174,41 @@ export default function LoginPage({
           zIndex: 1,
         }}
       >
-      <div style={{ width: '100%', maxWidth: '580px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '680px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {/* LOGO */}
-        <div className="login-fade" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px', marginBottom: '44px' }}>
+        <div className="login-fade" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginBottom: '40px' }}>
           <div
             style={{
-              width: '84px',
-              height: '84px',
+              width: '104px',
+              height: '104px',
               backgroundColor: accentLime,
-              borderRadius: '22px',
+              borderRadius: '26px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: bgDark,
               fontWeight: 900,
-              fontSize: '42px',
+              fontSize: '52px',
               fontStyle: 'italic',
-              boxShadow: '0 0 40px rgba(212, 255, 62, 0.28)',
+              boxShadow: '0 0 48px rgba(212, 255, 62, 0.3)',
             }}
           >
             C
           </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 900, letterSpacing: '-0.5px' }}>
-              CareShift<span style={{ fontSize: '14px', verticalAlign: 'super' }}>™</span>
-            </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '13px', color: accentLime, fontWeight: 800, letterSpacing: '0.04em' }}>
-              THE WELLBEING DECISION ENGINE™
-            </p>
-          </div>
+          <h2 style={{ margin: 0, fontSize: '34px', fontWeight: 900, letterSpacing: '-0.5px' }}>
+            CareShift<span style={{ fontSize: '16px', verticalAlign: 'super' }}>™</span>
+          </h2>
         </div>
 
-        <p className="login-fade" style={{ animationDelay: '0.1s', margin: 0, color: accentLime, fontWeight: 900, letterSpacing: '0.18em', fontSize: '14px' }}>
-          DEMO FLOW
-        </p>
         <h1
           className="login-fade"
-          style={{ animationDelay: '0.15s', margin: '18px 0 0', fontSize: 'clamp(3rem, 7vw, 4.4rem)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-2px' }}
+          style={{ animationDelay: '0.1s', margin: 0, fontSize: 'clamp(3.4rem, 8vw, 5.2rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px' }}
         >
           Masuk ke akun <span style={{ color: accentLime }}>demo</span>
         </h1>
-        <p
-          className="login-fade"
-          style={{ animationDelay: '0.2s', margin: '22px 0 0', fontSize: '18px', color: textGray, lineHeight: 1.65, maxWidth: '460px' }}
-        >
-          Pilih akun demo untuk melihat user digital yang berbeda dan alur rekomendasi CareShift yang sudah disiapkan.
-        </p>
 
         {/* QUICK DEMO CHIPS */}
-        <div className="login-fade" style={{ animationDelay: '0.25s', display: 'flex', gap: '16px', marginTop: '36px' }}>
+        <div className="login-fade" style={{ animationDelay: '0.2s', display: 'flex', gap: '18px', marginTop: '44px' }}>
           <button
             type="button"
             onClick={() => fillDemo('eric')}
@@ -231,13 +217,13 @@ export default function LoginPage({
               background: 'rgba(212, 255, 62, 0.08)',
               border: '2px solid rgba(212, 255, 62, 0.3)',
               borderRadius: '100px',
-              padding: '16px 32px',
+              padding: '19px 38px',
               color: accentLime,
-              fontSize: '16px',
+              fontSize: '19px',
               fontWeight: 800,
             }}
           >
-            Login sebagai Eric
+            Eric
           </button>
           <button
             type="button"
@@ -247,72 +233,72 @@ export default function LoginPage({
               background: 'rgba(212, 255, 62, 0.08)',
               border: '2px solid rgba(212, 255, 62, 0.3)',
               borderRadius: '100px',
-              padding: '16px 32px',
+              padding: '19px 38px',
               color: accentLime,
-              fontSize: '16px',
+              fontSize: '19px',
               fontWeight: 800,
             }}
           >
-            Login sebagai Daniel
+            Daniel
           </button>
         </div>
 
         <form
           onSubmit={onLogin}
           className="login-fade"
-          style={{ animationDelay: '0.3s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px', marginTop: '36px', width: '100%', maxWidth: '460px' }}
+          style={{ animationDelay: '0.3s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginTop: '40px', width: '100%', maxWidth: '520px' }}
         >
           <input
             className="login-input"
             type="text"
-            placeholder="Username (eric atau daniel)"
+            placeholder="Username"
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
             style={{
               width: '100%',
-              padding: '20px 24px',
-              borderRadius: '18px',
+              padding: '24px 26px',
+              borderRadius: '20px',
               border: '2px solid rgba(255,255,255,0.15)',
               background: 'rgba(255,255,255,0.03)',
               color: 'white',
               outline: 'none',
-              fontSize: '17px',
+              fontSize: '19px',
               boxSizing: 'border-box',
             }}
           />
           <input
             className="login-input"
             type="password"
-            placeholder="Password (demo)"
+            placeholder="Password"
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}
             style={{
               width: '100%',
-              padding: '20px 24px',
-              borderRadius: '18px',
+              padding: '24px 26px',
+              borderRadius: '20px',
               border: '2px solid rgba(255,255,255,0.15)',
               background: 'rgba(255,255,255,0.03)',
               color: 'white',
               outline: 'none',
-              fontSize: '17px',
+              fontSize: '19px',
               boxSizing: 'border-box',
             }}
           />
 
-          {error && <p style={{ margin: 0, color: '#fb7185', fontSize: '14px', fontWeight: 700 }}>{error}</p>}
+          {error && <p style={{ margin: 0, color: '#fb7185', fontSize: '15px', fontWeight: 700 }}>{error}</p>}
 
           <button
             type="submit"
             className="login-submit"
             style={{
               width: '100%',
-              padding: '21px 18px',
+              padding: '24px 18px',
               borderRadius: '100px',
               border: 'none',
               background: accentLime,
               color: bgDark,
               fontWeight: 900,
-              fontSize: '18px',
+              fontSize: '20px',
               cursor: 'pointer',
               boxShadow: '0 12px 28px rgba(212, 255, 62, 0.28)',
               marginTop: '8px',
@@ -321,10 +307,6 @@ export default function LoginPage({
             Masuk ke Dashboard
           </button>
         </form>
-
-        <p className="login-fade" style={{ animationDelay: '0.35s', margin: '22px 0 0', color: textGray, fontSize: '14px' }}>
-          eric / demo &nbsp;•&nbsp; daniel / demo
-        </p>
       </div>
       </main>
 

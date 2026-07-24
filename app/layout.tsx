@@ -1,3 +1,4 @@
+import './globals.css'
 import { DemoStateProvider } from './Components/DemoStateContext'
 
 export const metadata = {

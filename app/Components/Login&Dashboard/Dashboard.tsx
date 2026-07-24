@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { getActiveRecommendation } from '../DemoData';
 import { moodMeta, getCheckinRecommendation } from '../AfterLogin/CheckinData';
 import { useDemoState } from '../DemoStateContext';
+import { getActiveRecommendation, formatDate } from '../DemoData';
 import AppNav from '../AppNav';
 
 const bgDark = '#090C0B';
@@ -15,56 +15,115 @@ const navCards = [
     href: '/move',
     emoji: '🏃',
     title: 'Move',
-    description: 'Get a personalised activity recommendation based on how you feel today.',
+    description: 'Find your next activity.',
     action: 'Explore',
+    color: '#D4FF3E',
   },
   {
     href: '/smart-calendar',
     emoji: '🗓️',
     title: 'Smart Calendar',
-    description: 'Find the best time for movement based on your schedule and available free time.',
+    description: 'Find time to move.',
     action: 'View Calendar',
+    color: '#38BDF8',
   },
   {
     href: '/carematch',
     emoji: '🤝',
     title: 'CareMatch',
-    description: 'Find someone to move with and make physical activity more enjoyable.',
+    description: 'Move better together.',
     action: 'Find a Buddy',
+    color: '#F472B6',
   },
   {
     href: '/progress',
     emoji: '📈',
     title: 'Progress',
-    description: 'Track your movement, activities, and physical wellbeing over time.',
+    description: 'See your journey.',
     action: 'View Progress',
+    color: '#4ADE80',
   },
 ];
 
+// Picks a background "mood" icon for the recommendation card based on the activity's copy.
+function getActivityGlyph(activity: string) {
+  const text = activity.toLowerCase();
+  if (text.includes('run')) return '🏃';
+  if (text.includes('walk')) return '🚶';
+  if (text.includes('stretch') || text.includes('mobility') || text.includes('breath')) return '🧘';
+  if (text.includes('rest') || text.includes('recover')) return '😌';
+  return '🔥';
+}
+
+// Baseline demo values aren't in the checkin's Mood/percentage shape yet — map them for the snapshot cards.
+const fallbackMoodEmoji: Record<string, string> = {
+  Stressed: '😣',
+  Ready: '😊',
+};
+
+const fallbackEnergyPercent: Record<string, number> = {
+  Low: 25,
+  Medium: 55,
+  High: 85,
+};
+
+const tagStyle = {
+  padding: '8px 16px',
+  borderRadius: '100px',
+  background: 'rgba(212, 255, 62, 0.1)',
+  border: '1px solid rgba(212, 255, 62, 0.3)',
+  color: accentLime,
+  fontSize: '13px',
+  fontWeight: 800,
+};
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export default function Dashboard() {
-  const { currentUser, recommendationState, checkinMood, checkinEnergy, setRecommendationState } = useDemoState();
+  const { currentUser, checkinMood, checkinEnergy, recommendationState } = useDemoState();
+
+  const currentDate = formatDate();
+  const hasCheckedInToday = checkinMood !== null && checkinEnergy !== null;
 
   const activeRec = getActiveRecommendation(currentUser, recommendationState);
-  const todaysCheckin =
-    checkinMood && checkinEnergy !== null
-      ? { mood: checkinMood, energy: checkinEnergy, rec: getCheckinRecommendation(checkinMood, checkinEnergy) }
-      : null;
+  const todaysCheckin = hasCheckedInToday
+    ? { mood: checkinMood!, energy: checkinEnergy!, rec: getCheckinRecommendation(checkinMood!, checkinEnergy!) }
+    : null;
   const heroRec = todaysCheckin ? todaysCheckin.rec : activeRec;
+  const hasStructuredTiming = !todaysCheckin;
 
-  const currentDate = new Date().toLocaleDateString('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const snapshotMoodEmoji = checkinMood ? moodMeta[checkinMood].emoji : fallbackMoodEmoji[currentUser.mood] ?? '😐';
+  const snapshotMoodLabel = checkinMood ? moodMeta[checkinMood].label : currentUser.mood;
+  const snapshotEnergy = checkinEnergy ?? fallbackEnergyPercent[currentUser.energy] ?? 50;
+  const snapshotReadiness = currentUser.readiness;
+
+  const freeSlot = currentUser.freeSlots[0];
+  const activityGlyph = getActivityGlyph(heroRec.activity);
+  const showBuddyChip = hasStructuredTiming && recommendationState === 'pending' && currentUser.recommendation.socialCompatible;
 
   return (
     <div
+      className="dashboard-page"
       style={{
         minHeight: '100vh',
         width: '100%',
+        position: 'relative',
+        isolation: 'isolate',
+        overflow: 'hidden',
         backgroundColor: bgDark,
-        backgroundImage: `radial-gradient(circle at 85% 0%, rgba(212, 255, 62, 0.1) 0%, transparent 55%)`,
+        backgroundImage: `
+          linear-gradient(180deg, rgba(9, 12, 11, 0.94) 0%, rgba(9, 12, 11, 0.86) 45%, rgba(9, 12, 11, 0.97) 100%),
+          radial-gradient(circle at 85% 0%, rgba(212, 255, 62, 0.1) 0%, transparent 55%),
+          url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1920&q=80')
+        `,
+        backgroundSize: 'cover, cover, cover',
+        backgroundPosition: 'center, center, center',
+        backgroundAttachment: 'fixed, fixed, fixed',
         color: '#f8fafc',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
@@ -73,153 +132,458 @@ export default function Dashboard() {
         {`
           .dash-btn { transition: all 0.2s ease; }
           .dash-btn:hover { transform: translateY(-2px); }
-          .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
-          .nav-card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
-          .nav-card {
-            display: block;
-            text-decoration: none;
-            color: inherit;
-            padding: 26px 22px;
+          .dashboard-page > nav { position: relative; z-index: 1; }
+          .dashboard-wallpaper {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            background:
+              radial-gradient(circle at 88% 22%, rgba(212, 255, 62, 0.13), transparent 20%),
+              radial-gradient(circle at 5% 88%, rgba(84, 141, 92, 0.14), transparent 24%);
+          }
+          .dashboard-wallpaper::before {
+            content: '';
+            position: absolute;
+            width: 720px;
+            height: 660px;
+            top: 80px;
+            right: -160px;
+            opacity: 0.3;
+            background-image:
+              linear-gradient(rgba(212, 255, 62, 0.14) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(212, 255, 62, 0.14) 1px, transparent 1px);
+            background-size: 74px 74px;
+            mask-image: radial-gradient(circle, black 5%, transparent 69%);
+          }
+          .dashboard-route {
+            position: absolute;
+            width: min(72vw, 920px);
+            height: 390px;
+            right: -210px;
+            top: 185px;
+            border: 2px solid rgba(212, 255, 62, 0.18);
+            border-radius: 52% 48% 58% 42%;
+            transform: rotate(-24deg);
+            box-shadow: 0 0 42px rgba(212, 255, 62, 0.08), inset 0 0 36px rgba(212, 255, 62, 0.04);
+          }
+          .wallpaper-runner {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #D4FF3E;
+            box-shadow: 0 0 0 6px rgba(212, 255, 62, 0.08), 0 0 22px rgba(212, 255, 62, 0.42);
+          }
+          .wallpaper-runner::after {
+            content: '';
+            position: absolute;
+            width: 28px;
+            height: 2px;
+            top: 5px;
+            right: 11px;
+            background: linear-gradient(90deg, rgba(212, 255, 62, 0), rgba(212, 255, 62, 0.55));
+          }
+          .runner-one { top: 304px; right: 19%; }
+          .runner-two { top: 572px; right: 6%; opacity: 0.6; transform: scale(0.72); }
+
+          .snapshot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+          .snapshot-card {
+            padding: 24px;
             border-radius: 24px;
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08);
             transition: all 0.2s ease;
           }
+          .snapshot-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(212, 255, 62, 0.3);
+            background: rgba(255,255,255,0.06);
+          }
+          .energy-bar-track {
+            margin-top: 12px;
+            height: 6px;
+            border-radius: 100px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+          }
+          .energy-bar-fill { height: 100%; border-radius: 100px; background: ${accentLime}; }
+
+          .hero-rec-card { position: relative; overflow: hidden; }
+          .hero-rec-card::before {
+            content: '';
+            position: absolute;
+            top: -45%;
+            right: -8%;
+            width: 460px;
+            height: 460px;
+            background: radial-gradient(circle, rgba(212,255,62,0.16), transparent 70%);
+            pointer-events: none;
+            animation: glowDrift 8s ease-in-out infinite;
+          }
+          .hero-rec-glyph {
+            position: absolute;
+            right: -6%;
+            bottom: -18%;
+            font-size: 260px;
+            line-height: 1;
+            opacity: 0.06;
+            transform: rotate(-8deg);
+            pointer-events: none;
+            filter: blur(1px);
+          }
+          .reason-clamp {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+          @keyframes glowDrift {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+            50% { transform: translate(-16px, 12px) scale(1.08); opacity: 1; }
+          }
+
+          @keyframes companionFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+          }
+          @keyframes companionBreathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+          }
+          @keyframes companionPulse {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            100% { transform: scale(1.55); opacity: 0; }
+          }
+          @keyframes companionHalo {
+            0%, 100% { opacity: 0.55; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.1); }
+          }
+          @keyframes sparkleTwinkle {
+            0%, 100% { opacity: 0; transform: scale(0.4); }
+            50% { opacity: 1; transform: scale(1); }
+          }
+          .companion-wrap { position: relative; width: 140px; height: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; animation: companionFloat 5s ease-in-out infinite; }
+          .companion-halo {
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(212,255,62,0.5), transparent 68%);
+            filter: blur(14px);
+            animation: companionHalo 4.5s ease-in-out infinite;
+          }
+          .companion-avatar { position: relative; width: 112px; height: 112px; display: flex; align-items: center; justify-content: center; }
+          .companion-ring {
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            border: 1px solid rgba(212, 255, 62, 0.4);
+            animation: companionPulse 2.6s ease-out infinite;
+          }
+          .companion-ring-delay {
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            border: 1px solid rgba(212, 255, 62, 0.4);
+            animation: companionPulse 2.6s ease-out infinite 1.3s;
+          }
+          .companion-core {
+            position: relative;
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 32% 26%, #f2ffb8 0%, rgba(212,255,62,0.95) 30%, rgba(160,214,20,0.65) 62%, rgba(9,12,11,0.95) 100%);
+            box-shadow: 0 0 0 1px rgba(212,255,62,0.3), 0 18px 38px rgba(212,255,62,0.28);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            animation: companionBreathe 4.5s ease-in-out infinite;
+          }
+          .companion-eye { width: 8px; height: 8px; border-radius: 50%; background: #090C0B; }
+          .companion-smile {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            width: 26px;
+            height: 12px;
+            transform: translateX(-50%);
+            border-bottom: 3px solid rgba(9, 12, 11, 0.7);
+            border-radius: 0 0 16px 16px;
+          }
+          .companion-status {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4ADE80;
+            border: 3px solid #0B0F0D;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
+          }
+          .companion-sparkle {
+            position: absolute;
+            border-radius: 50%;
+            background: #D4FF3E;
+            box-shadow: 0 0 8px rgba(212, 255, 62, 0.8);
+          }
+          .sparkle-a { top: 4px; right: 10px; width: 6px; height: 6px; animation: sparkleTwinkle 3.4s ease-in-out infinite; }
+          .sparkle-b { bottom: 18px; left: 0px; width: 5px; height: 5px; animation: sparkleTwinkle 3.4s ease-in-out infinite 1.1s; }
+          .sparkle-c { top: 24px; left: -6px; width: 4px; height: 4px; animation: sparkleTwinkle 3.4s ease-in-out infinite 2.2s; }
+
+          .buddy-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            background: rgba(244, 114, 182, 0.12);
+            border: 1px solid rgba(244, 114, 182, 0.35);
+            color: #f9a8d4;
+            font-size: 13px;
+            font-weight: 800;
+          }
+
+          .cta-shimmer { position: relative; overflow: hidden; }
+          .cta-shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -60%;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(115deg, transparent, rgba(255,255,255,0.55), transparent);
+            animation: shimmerSweep 3s ease-in-out infinite;
+          }
+          @keyframes shimmerSweep {
+            0% { left: -60%; }
+            55%, 100% { left: 130%; }
+          }
+          .cta-shimmer:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 18px 36px rgba(212, 255, 62, 0.4) !important; }
+
+          .live-badge { display: inline-flex; align-items: center; gap: 6px; }
+          .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #4ADE80;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18), 0 0 8px rgba(74, 222, 128, 0.9);
+            animation: livePulse 1.8s ease-in-out infinite;
+          }
+          @keyframes livePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18), 0 0 8px rgba(74, 222, 128, 0.9); }
+            50% { transform: scale(1.25); box-shadow: 0 0 0 5px rgba(74, 222, 128, 0.1), 0 0 12px rgba(74, 222, 128, 1); }
+          }
+
+          .nav-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+          .nav-card {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            padding: 44px 40px;
+            border-radius: 32px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.2s ease;
+          }
           .nav-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-6px);
             border-color: rgba(212, 255, 62, 0.4);
             background: rgba(212, 255, 62, 0.05);
-            box-shadow: 0 16px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
           }
-          @media (max-width: 880px) {
-            .feature-grid { grid-template-columns: 1fr; }
-            .nav-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          }
-          @media (max-width: 560px) {
+          .nav-card-icon { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+          .nav-card:hover .nav-card-icon { transform: scale(1.1) rotate(-4deg); }
+          .nav-card-cta { display: inline-flex; align-items: center; transition: transform 0.25s ease; }
+          .nav-card:hover .nav-card-cta { transform: translateX(5px); }
+
+          @media (max-width: 720px) {
             .nav-card-grid { grid-template-columns: 1fr; }
+            .nav-card { padding: 32px 28px; }
+            .snapshot-grid { grid-template-columns: 1fr; }
           }
         `}
       </style>
 
       <AppNav />
+      <div className="dashboard-wallpaper" aria-hidden="true">
+        <div className="dashboard-route" />
+        <span className="wallpaper-runner runner-one" />
+        <span className="wallpaper-runner runner-two" />
+      </div>
 
-      <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '32px 5% 60px', display: 'flex', flexDirection: 'column', gap: '40px' }}>
-        {/* GREETING */}
-        <header>
-          <p style={{ margin: 0, color: textGray, fontSize: '13px', fontWeight: 600 }}>{currentDate}</p>
-          <h1 style={{ margin: '10px 0 0', fontSize: 'clamp(2rem, 3vw, 3rem)', fontWeight: 900, letterSpacing: '-1px' }}>
-            Halo, <span style={{ color: accentLime }}>{currentUser.name}</span>
-          </h1>
-          <p style={{ margin: '10px 0 0', color: '#cbd5e1', maxWidth: '680px', fontSize: '15px' }}>
-            Ini tampilan demo yang menunjukkan perkiraan hari, momen yang cocok untuk latihan, dan rekomendasi kesehatan yang mudah diikuti.
-          </p>
-        </header>
-
-        {/* HERO: TODAY'S CHECK-IN + RECOMMENDED ACTIVITY */}
-        <div
-          style={{
-            borderRadius: '32px',
-            background: 'linear-gradient(135deg, rgba(212, 255, 62, 0.12), rgba(15, 23, 42, 0.92))',
-            border: '1px solid rgba(212, 255, 62, 0.25)',
-            padding: '32px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '28px',
-            justifyContent: 'space-between',
-            boxShadow: '0 30px 70px rgba(0, 0, 0, 0.35)',
-          }}
-        >
-          <div style={{ flex: '1 1 280px' }}>
-            <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-              Today&apos;s Check-in
-            </p>
-            <p style={{ margin: '12px 0 0', fontSize: '1.4rem', fontWeight: 800 }}>Good to see you, {currentUser.name} 👋</p>
-
-            {todaysCheckin ? (
-              <div style={{ display: 'flex', gap: '18px', marginTop: '18px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '16px', fontWeight: 700 }}>
-                  {moodMeta[todaysCheckin.mood].emoji} {moodMeta[todaysCheckin.mood].label}
-                </span>
-                <span style={{ fontSize: '16px', fontWeight: 700, color: accentLime }}>⚡ {todaysCheckin.energy}% Energy</span>
-              </div>
-            ) : (
-              <div style={{ marginTop: '18px' }}>
-                <p style={{ margin: 0, color: textGray, fontSize: '14px' }}>Belum check-in hari ini.</p>
-                <Link
-                  href={`/checkin/mood?user=${currentUser.id}`}
-                  className="dash-btn"
-                  style={{
-                    display: 'inline-block',
-                    marginTop: '14px',
-                    padding: '12px 22px',
-                    borderRadius: '100px',
-                    border: `1px solid rgba(212, 255, 62, 0.4)`,
-                    color: accentLime,
-                    fontWeight: 800,
-                    fontSize: '13px',
-                    textDecoration: 'none',
-                  }}
-                >
-                  Mulai Check-in →
-                </Link>
-              </div>
-            )}
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: '1280px', margin: '0 auto', padding: '56px 5% 100px', display: 'flex', flexDirection: 'column', gap: '48px' }}>
+        {/* WELCOME */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <p style={{ margin: 0, color: textGray, fontSize: '14px', fontWeight: 600 }}>{currentDate}</p>
+            <h1 style={{ margin: '10px 0 6px', fontSize: 'clamp(2.4rem, 4vw, 3.4rem)', fontWeight: 900, letterSpacing: '-1.5px' }}>
+              {getGreeting()}, <span style={{ color: accentLime }}>{currentUser.name}</span> 👋
+            </h1>
+            <p style={{ margin: 0, color: textGray, fontSize: '16px', fontWeight: 600 }}>Your wellbeing snapshot</p>
           </div>
 
-          <div style={{ flex: '1 1 360px', maxWidth: '460px', background: '#0f172a', borderRadius: '22px', padding: '24px 26px' }}>
-            <p style={{ margin: 0, color: textGray, fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Recommended for you
-            </p>
-            <p style={{ margin: '10px 0 0', fontSize: '1.35rem', fontWeight: 800 }}>{heroRec.activity}</p>
-            <p style={{ margin: '4px 0 0', color: accentLime, fontSize: '13px', fontWeight: 700 }}>{heroRec.intensity} intensity</p>
-            <p style={{ margin: '10px 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.65 }}>{heroRec.reason}</p>
-
-            <button
-              onClick={() => setRecommendationState('accepted')}
-              className="dash-btn"
-              style={{ marginTop: '18px', width: '100%', padding: '15px', borderRadius: '100px', border: 'none', background: accentLime, color: bgDark, fontWeight: 800, cursor: 'pointer', fontSize: '15px' }}
-            >
-              Start Activity
-            </button>
-
+          {!hasCheckedInToday && (
             <Link
-              href="/move"
-              style={{ display: 'block', textAlign: 'center', marginTop: '12px', color: textGray, fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}
+              href={`/checkin/mood?user=${currentUser.id}`}
+              className="dash-btn"
+              style={{
+                display: 'inline-block',
+                padding: '14px 26px',
+                borderRadius: '100px',
+                border: `1px solid rgba(212, 255, 62, 0.4)`,
+                color: accentLime,
+                fontWeight: 800,
+                fontSize: '14px',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
             >
-              Explore other options →
+              Check in now →
             </Link>
+          )}
+        </header>
+
+        {/* TODAY'S WELLBEING SNAPSHOT */}
+        <div className="snapshot-grid">
+          <div className="snapshot-card">
+            <span style={{ fontSize: '30px' }}>{snapshotMoodEmoji}</span>
+            <p style={{ margin: '14px 0 4px', color: textGray, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Mood</p>
+            <p style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{snapshotMoodLabel}</p>
+          </div>
+
+          <div className="snapshot-card">
+            <span style={{ fontSize: '30px' }}>⚡</span>
+            <p style={{ margin: '14px 0 4px', color: textGray, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Energy</p>
+            <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: accentLime }}>{snapshotEnergy}%</p>
+            <div className="energy-bar-track">
+              <div className="energy-bar-fill" style={{ width: `${snapshotEnergy}%` }} />
+            </div>
+          </div>
+
+          <div className="snapshot-card">
+            <span style={{ fontSize: '30px' }}>💪</span>
+            <p style={{ margin: '14px 0 4px', color: textGray, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Readiness</p>
+            <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: snapshotReadiness === 'Good' ? accentLime : '#f8fafc' }}>{snapshotReadiness}</p>
           </div>
         </div>
 
-        {/* WHAT WOULD YOU LIKE TO DO TODAY */}
-        <div>
-          <p style={{ margin: '0 0 8px', color: textGray, fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Navigasi
-          </p>
-          <h2 style={{ margin: '0 0 20px', fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.5px' }}>
+        {/* MAIN AI RECOMMENDATION — CareBot companion */}
+        <section
+          className="hero-rec-card"
+          style={{
+            borderRadius: '32px',
+            background: 'linear-gradient(160deg, rgba(212, 255, 62, 0.08), rgba(15, 23, 42, 0.94))',
+            border: '1px solid rgba(212, 255, 62, 0.22)',
+            padding: 'clamp(28px, 4vw, 40px)',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: '36px', alignItems: 'flex-start', flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+              <div className="companion-wrap">
+                <div className="companion-halo" />
+                <div className="companion-avatar">
+                  <div className="companion-ring" />
+                  <div className="companion-ring-delay" />
+                  <div className="companion-core">
+                    <span className="companion-eye" />
+                    <span className="companion-eye" />
+                    <span className="companion-smile" />
+                  </div>
+                  <span className="companion-status" />
+                </div>
+                <span className="companion-sparkle sparkle-a" />
+                <span className="companion-sparkle sparkle-b" />
+                <span className="companion-sparkle sparkle-c" />
+              </div>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: textGray, letterSpacing: '0.06em' }}>CareBot</span>
+            </div>
+
+            <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <p style={{ margin: 0, color: accentLime, fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                  ✨ Recommended for you
+                </p>
+                <span className="live-badge" style={{ color: textGray, fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  <span className="live-dot" /> Live
+                </span>
+              </div>
+              <h2 style={{ margin: '14px 0 0', fontSize: 'clamp(2rem, 3.4vw, 2.8rem)', fontWeight: 900, letterSpacing: '-1.2px' }}>
+                {heroRec.activity}
+              </h2>
+
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', margin: '18px 0' }}>
+                <span style={tagStyle}>{heroRec.intensity}</span>
+                {hasStructuredTiming && <span style={tagStyle}>{activeRec.durationMinutes} min</span>}
+                {hasStructuredTiming && <span style={tagStyle}>Today · {activeRec.startTime}</span>}
+                {showBuddyChip && <span className="buddy-chip">🤝 {currentUser.recommendation.friendName} is free too</span>}
+              </div>
+
+              <p className="reason-clamp" style={{ margin: '0 0 28px', color: '#cbd5e1', fontSize: '16px', lineHeight: 1.6, maxWidth: '520px' }}>
+                {heroRec.reason}
+              </p>
+
+              <Link
+                href="/move"
+                className="dash-btn cta-shimmer"
+                style={{
+                  display: 'inline-block',
+                  padding: '18px 40px',
+                  borderRadius: '100px',
+                  background: accentLime,
+                  color: bgDark,
+                  fontWeight: 900,
+                  fontSize: '16px',
+                  textDecoration: 'none',
+                  boxShadow: '0 14px 30px rgba(212, 255, 62, 0.3)',
+                }}
+              >
+                Start Activity →
+              </Link>
+            </div>
+          </div>
+
+          <span className="hero-rec-glyph" aria-hidden="true">{activityGlyph}</span>
+        </section>
+
+        {/* SECTION DIVIDER */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212, 255, 62, 0.35))' }} />
+          <span style={{ color: textGray, fontSize: '12px', fontWeight: 800, letterSpacing: '0.25em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
             What would you like to do today?
-          </h2>
+          </span>
+          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(212, 255, 62, 0.35), transparent)' }} />
+        </div>
+
+        {/* FEATURE NAVIGATION */}
+        <div>
           <div className="nav-card-grid">
             {navCards.map((card) => (
               <Link key={card.href} href={card.href} className="nav-card">
                 <div
+                  className="nav-card-icon"
                   style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '16px',
-                    background: 'rgba(212, 255, 62, 0.12)',
+                    width: '72px',
+                    height: '72px',
+                    borderRadius: '20px',
+                    background: `${card.color}22`,
+                    border: `1px solid ${card.color}40`,
+                    boxShadow: `0 10px 26px ${card.color}33`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '26px',
-                    marginBottom: '18px',
+                    fontSize: '36px',
+                    marginBottom: '28px',
                   }}
                 >
                   {card.emoji}
                 </div>
-                <h3 style={{ margin: '0 0 8px', fontSize: '1.05rem', fontWeight: 800 }}>{card.title}</h3>
-                <p style={{ margin: 0, color: textGray, fontSize: '13px', lineHeight: 1.55, minHeight: '54px' }}>{card.description}</p>
-                <span style={{ display: 'inline-block', marginTop: '16px', color: accentLime, fontWeight: 800, fontSize: '13px' }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '1.6rem', fontWeight: 800 }}>{card.title}</h3>
+                <p style={{ margin: 0, color: textGray, fontSize: '16px', lineHeight: 1.6 }}>{card.description}</p>
+                <span className="nav-card-cta" style={{ marginTop: '24px', color: card.color, fontWeight: 800, fontSize: '16px' }}>
                   {card.action} →
                 </span>
               </Link>
@@ -227,98 +591,51 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* SUPPORTING INFORMATION */}
-        <div>
-          <p style={{ margin: '0 0 16px', color: textGray, fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Informasi Pendukung
-          </p>
-
-          <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px', marginBottom: '24px' }}>
-            {[
-              { label: 'Mood', value: currentUser.mood },
-              { label: 'Energy', value: currentUser.energy },
-              { label: 'Readiness', value: currentUser.readiness },
-              { label: 'Lokasi', value: currentUser.location },
-            ].map((item) => (
-              <div
-                key={item.label}
-                style={{
-                  padding: '22px',
-                  borderRadius: '24px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                <p style={{ margin: 0, color: textGray, fontSize: '13px', fontWeight: 600 }}>{item.label}</p>
-                <p style={{ margin: '10px 0 0', fontSize: '1.4rem', fontWeight: 800, color: accentLime }}>{item.value}</p>
-              </div>
-            ))}
-          </section>
-
-          <div className="feature-grid">
-            {/* FEATURE: DAILY CHECK-IN */}
-            <div
-              style={{
-                borderRadius: '28px',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                padding: '26px',
-              }}
-            >
-              <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                Fitur · Check-In
-              </p>
-              <h2 style={{ margin: '10px 0 16px', fontSize: '1.3rem', fontWeight: 800 }}>Daily Check-In</h2>
-              <div style={{ display: 'grid', gap: '14px' }}>
-                {[
-                  ['Mood', currentUser.mood],
-                  ['Energy', currentUser.energy],
-                  ['Readiness', currentUser.readiness],
-                  ['Lokasi', currentUser.location],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                      alignItems: 'center',
-                      padding: '18px',
-                      borderRadius: '18px',
-                      background: '#0f172a',
-                    }}
-                  >
-                    <span style={{ color: textGray }}>{label}</span>
-                    <strong>{value}</strong>
-                  </div>
-                ))}
-              </div>
-              <p style={{ margin: '20px 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.7 }}>
-                Catatan: {currentUser.notes}
-              </p>
-            </div>
-
-            {/* FEATURE: SMART CALENDAR PREVIEW */}
-            <div style={{ padding: '26px', borderRadius: '28px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column' }}>
-              <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                Preview · Smart Calendar
-              </p>
-              <p style={{ margin: '14px 0 0', color: '#f8fafc', fontSize: '15px', fontWeight: 700 }}>
-                You have {currentUser.freeSlots[0].usableMinutes} minutes available today.
-              </p>
-              <p style={{ margin: '10px 0 0', color: '#cbd5e1', fontSize: '14px', lineHeight: 1.6 }}>
-                Smart Calendar recommends a {activeRec.durationMinutes}-minute {activeRec.activity.toLowerCase()} at {activeRec.startTime}.
-              </p>
-              <Link
-                href="/smart-calendar"
-                className="dash-btn"
-                style={{ marginTop: 'auto', paddingTop: '18px', color: accentLime, fontWeight: 800, fontSize: '13px', textDecoration: 'none' }}
-              >
-                View Smart Calendar →
-              </Link>
-            </div>
+        {/* SMART CALENDAR PREVIEW */}
+        <section
+          style={{
+            borderRadius: '28px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            padding: '30px 36px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '24px',
+          }}
+        >
+          <div>
+            <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              🗓️ Next available time
+            </p>
+            <p style={{ margin: '12px 0 0', fontSize: '1.5rem', fontWeight: 800 }}>
+              Today · {freeSlot.start}–{freeSlot.end}
+            </p>
+            <p style={{ margin: '6px 0 0', color: textGray, fontSize: '14px' }}>{freeSlot.usableMinutes} min available</p>
           </div>
-        </div>
+
+          <div style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: 700 }}>
+            ✨ Recommended: <span style={{ color: accentLime, fontWeight: 800 }}>{activeRec.activity} · {activeRec.startTime}</span>
+          </div>
+
+          <Link
+            href="/smart-calendar"
+            className="dash-btn"
+            style={{
+              padding: '14px 26px',
+              borderRadius: '100px',
+              border: '1px solid rgba(255,255,255,0.18)',
+              color: '#f8fafc',
+              fontWeight: 800,
+              fontSize: '14px',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            View Smart Calendar →
+          </Link>
+        </section>
       </div>
     </div>
   );

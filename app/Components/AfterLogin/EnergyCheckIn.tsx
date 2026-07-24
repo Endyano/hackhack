@@ -50,28 +50,22 @@ export default function EnergyCheckIn({ userName, energy, onEnergyChange, onCont
         `}
       </style>
 
-      <div style={{ width: '100%', maxWidth: '700px' }}>
-        <p className="checkin-fade" style={{ margin: 0, fontSize: '16px', color: accentLime, fontWeight: 900, letterSpacing: '0.16em' }}>
+      <div style={{ width: '100%', maxWidth: '760px' }}>
+        <p className="checkin-fade" style={{ margin: 0, fontSize: '17px', color: accentLime, fontWeight: 900, letterSpacing: '0.16em' }}>
           {userName.toUpperCase()}
         </p>
         <h1
           className="checkin-fade"
-          style={{ animationDelay: '0.1s', margin: '18px 0 0', fontSize: 'clamp(2.6rem, 6vw, 3.8rem)', fontWeight: 900, lineHeight: 1.03, letterSpacing: '-1.5px' }}
+          style={{ animationDelay: '0.1s', margin: '16px 0 0', fontSize: 'clamp(3.2rem, 7.5vw, 5rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px' }}
         >
           How much energy do you have today?
         </h1>
-        <p
-          className="checkin-fade"
-          style={{ animationDelay: '0.15s', margin: '18px 0 0', fontSize: '17px', color: textGray, lineHeight: 1.65, maxWidth: '560px' }}
-        >
-          This helps CareShift match the intensity of your recommendation to how much you actually have to give today.
-        </p>
 
-        <div className="checkin-fade" style={{ animationDelay: '0.2s', marginTop: '56px' }}>
-          <p style={{ margin: 0, fontSize: 'clamp(4rem, 10vw, 6.5rem)', fontWeight: 900, color: accentLime, lineHeight: 1 }}>
+        <div className="checkin-fade" style={{ animationDelay: '0.15s', marginTop: '60px' }}>
+          <p style={{ margin: 0, fontSize: 'clamp(5rem, 12vw, 8rem)', fontWeight: 900, color: accentLime, lineHeight: 1 }}>
             {energy}%
           </p>
-          <p style={{ margin: '16px 0 0', fontSize: '20px', fontWeight: 700, color: 'white' }}>{getEnergyLabel(energy)}</p>
+          <p style={{ margin: '18px 0 0', fontSize: '24px', fontWeight: 700, color: 'white' }}>{getEnergyLabel(energy)}</p>
 
           <input
             type="range"
