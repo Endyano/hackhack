@@ -15,7 +15,7 @@ const navCards = [
     href: '/move',
     emoji: '🏃',
     title: 'Move',
-    description: 'Find your next activity.',
+    description: 'Choose a workout, mobility flow, or recovery session.',
     action: 'Explore',
     color: '#D4FF3E',
   },
@@ -23,7 +23,7 @@ const navCards = [
     href: '/smart-calendar',
     emoji: '🗓️',
     title: 'Smart Calendar',
-    description: 'Find time to move.',
+    description: 'Plan training around your real schedule.',
     action: 'View Calendar',
     color: '#38BDF8',
   },
@@ -31,7 +31,7 @@ const navCards = [
     href: '/carematch',
     emoji: '🤝',
     title: 'CareMatch',
-    description: 'Move better together.',
+    description: 'Train consistently with a partner.',
     action: 'Find a Buddy',
     color: '#F472B6',
   },
@@ -39,7 +39,7 @@ const navCards = [
     href: '/progress',
     emoji: '📈',
     title: 'Progress',
-    description: 'See your journey.',
+    description: 'Track training and recovery consistency.',
     action: 'View Progress',
     color: '#4ADE80',
   },
@@ -90,11 +90,17 @@ export default function Dashboard() {
   const currentDate = formatDate();
   const hasCheckedInToday = checkinMood !== null && checkinEnergy !== null;
 
+  // AI RECOMMENDATION (the CareBot card) — figure out what to suggest.
+  // activeRec: the "base" recommendation (changes if the user picked shorten/replace/skip on the Move page).
   const activeRec = getActiveRecommendation(currentUser, recommendationState);
+  // If the user already did today's mood/energy check-in, build a recommendation from that instead.
   const todaysCheckin = hasCheckedInToday
     ? { mood: checkinMood!, energy: checkinEnergy!, rec: getCheckinRecommendation(checkinMood!, checkinEnergy!) }
     : null;
+  // heroRec is whichever one we actually show on the card: check-in based, or the base one.
   const heroRec = todaysCheckin ? todaysCheckin.rec : activeRec;
+  // The check-in based recommendation has no exact duration/start time, so only show those tags
+  // (and use them elsewhere on the page) when we're using the base recommendation.
   const hasStructuredTiming = !todaysCheckin;
 
   const snapshotMoodEmoji = checkinMood ? moodMeta[checkinMood].emoji : fallbackMoodEmoji[currentUser.mood] ?? '😐';
@@ -103,7 +109,9 @@ export default function Dashboard() {
   const snapshotReadiness = currentUser.readiness;
 
   const freeSlot = currentUser.freeSlots[0];
+  // Big faint emoji drawn in the background of the AI card, picked to match the activity.
   const activityGlyph = getActivityGlyph(heroRec.activity);
+  // Only brag about a workout buddy when the base recommendation actually has one lined up.
   const showBuddyChip = hasStructuredTiming && recommendationState === 'pending' && currentUser.recommendation.socialCompatible;
 
   return (
@@ -210,6 +218,9 @@ export default function Dashboard() {
           }
           .energy-bar-fill { height: 100%; border-radius: 100px; background: ${accentLime}; }
 
+          /* ===== AI RECOMMENDATION CARD (CareBot) ===== */
+
+          /* The card itself, plus a soft glowing blob drifting behind the content */
           .hero-rec-card { position: relative; overflow: hidden; }
           .hero-rec-card::before {
             content: '';
@@ -222,6 +233,7 @@ export default function Dashboard() {
             pointer-events: none;
             animation: glowDrift 8s ease-in-out infinite;
           }
+          /* Giant faint emoji in the corner of the card, just for visual depth */
           .hero-rec-glyph {
             position: absolute;
             right: -6%;
@@ -233,38 +245,48 @@ export default function Dashboard() {
             pointer-events: none;
             filter: blur(1px);
           }
+          /* Cuts the "why" text off after 2 lines so the card doesn't get too tall */
           .reason-clamp {
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
           }
+          /* Slow drifting glow behind the card content */
           @keyframes glowDrift {
             0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
             50% { transform: translate(-16px, 12px) scale(1.08); opacity: 1; }
           }
 
+          /* ---- CareBot avatar (the little glowing face) ---- */
+          /* Gentle up-and-down floating motion for the whole avatar */
           @keyframes companionFloat {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-8px); }
           }
+          /* Avatar slowly "breathing" (growing/shrinking a little) so it feels alive */
           @keyframes companionBreathe {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.06); }
           }
+          /* A ring that expands and fades out, like a radar ping */
           @keyframes companionPulse {
             0% { transform: scale(0.9); opacity: 0.8; }
             100% { transform: scale(1.55); opacity: 0; }
           }
+          /* Soft glow behind the avatar, fading in and out */
           @keyframes companionHalo {
             0%, 100% { opacity: 0.55; transform: scale(1); }
             50% { opacity: 0.9; transform: scale(1.1); }
           }
+          /* Little sparkles blinking on/off around the avatar */
           @keyframes sparkleTwinkle {
             0%, 100% { opacity: 0; transform: scale(0.4); }
             50% { opacity: 1; transform: scale(1); }
           }
+          /* Outer wrapper: this is what floats up and down */
           .companion-wrap { position: relative; width: 140px; height: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; animation: companionFloat 5s ease-in-out infinite; }
+          /* Blurry glow sitting behind the avatar */
           .companion-halo {
             position: absolute;
             inset: 4px;
@@ -274,6 +296,7 @@ export default function Dashboard() {
             animation: companionHalo 4.5s ease-in-out infinite;
           }
           .companion-avatar { position: relative; width: 112px; height: 112px; display: flex; align-items: center; justify-content: center; }
+          /* Two pulse rings, one starts a bit after the other so they don't look identical */
           .companion-ring {
             position: absolute;
             inset: -10px;
@@ -288,6 +311,7 @@ export default function Dashboard() {
             border: 1px solid rgba(212, 255, 62, 0.4);
             animation: companionPulse 2.6s ease-out infinite 1.3s;
           }
+          /* The round glowing "face" itself */
           .companion-core {
             position: relative;
             width: 96px;
@@ -302,6 +326,7 @@ export default function Dashboard() {
             animation: companionBreathe 4.5s ease-in-out infinite;
           }
           .companion-eye { width: 8px; height: 8px; border-radius: 50%; background: #090C0B; }
+          /* A little curved smile made from a border, not an image */
           .companion-smile {
             position: absolute;
             bottom: 30px;
@@ -312,6 +337,7 @@ export default function Dashboard() {
             border-bottom: 3px solid rgba(9, 12, 11, 0.7);
             border-radius: 0 0 16px 16px;
           }
+          /* Green "online" dot in the corner of the avatar */
           .companion-status {
             position: absolute;
             bottom: 4px;
@@ -329,10 +355,12 @@ export default function Dashboard() {
             background: #D4FF3E;
             box-shadow: 0 0 8px rgba(212, 255, 62, 0.8);
           }
+          /* Each sparkle sits in a different spot and twinkles at a different time */
           .sparkle-a { top: 4px; right: 10px; width: 6px; height: 6px; animation: sparkleTwinkle 3.4s ease-in-out infinite; }
           .sparkle-b { bottom: 18px; left: 0px; width: 5px; height: 5px; animation: sparkleTwinkle 3.4s ease-in-out infinite 1.1s; }
           .sparkle-c { top: 24px; left: -6px; width: 4px; height: 4px; animation: sparkleTwinkle 3.4s ease-in-out infinite 2.2s; }
 
+          /* Pink pill shown when a workout buddy is available (e.g. "Daniel is free too") */
           .buddy-chip {
             display: inline-flex;
             align-items: center;
@@ -346,6 +374,7 @@ export default function Dashboard() {
             font-weight: 800;
           }
 
+          /* "Start Activity" button: a light streak sweeps across it on a loop */
           .cta-shimmer { position: relative; overflow: hidden; }
           .cta-shimmer::after {
             content: '';
@@ -363,6 +392,7 @@ export default function Dashboard() {
           }
           .cta-shimmer:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 18px 36px rgba(212, 255, 62, 0.4) !important; }
 
+          /* Small "Live" label with a pulsing green dot, top-right of the AI card */
           .live-badge { display: inline-flex; align-items: center; gap: 6px; }
           .live-dot {
             width: 7px;
@@ -422,7 +452,7 @@ export default function Dashboard() {
             <h1 style={{ margin: '10px 0 6px', fontSize: 'clamp(2.4rem, 4vw, 3.4rem)', fontWeight: 900, letterSpacing: '-1.5px' }}>
               {getGreeting()}, <span style={{ color: accentLime }}>{currentUser.name}</span> 👋
             </h1>
-            <p style={{ margin: 0, color: textGray, fontSize: '16px', fontWeight: 600 }}>Your wellbeing snapshot</p>
+            <p style={{ margin: 0, color: textGray, fontSize: '16px', fontWeight: 600 }}>Your physical care snapshot</p>
           </div>
 
           {!hasCheckedInToday && (
@@ -450,13 +480,13 @@ export default function Dashboard() {
         <div className="snapshot-grid">
           <div className="snapshot-card">
             <span style={{ fontSize: '30px' }}>{snapshotMoodEmoji}</span>
-            <p style={{ margin: '14px 0 4px', color: textGray, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Mood</p>
+            <p style={{ margin: '14px 0 4px', color: textGray, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Body status</p>
             <p style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>{snapshotMoodLabel}</p>
           </div>
 
           <div className="snapshot-card">
             <span style={{ fontSize: '30px' }}>⚡</span>
-            <p style={{ margin: '14px 0 4px', color: textGray, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Energy</p>
+            <p style={{ margin: '14px 0 4px', color: textGray, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Training readiness</p>
             <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: accentLime }}>{snapshotEnergy}%</p>
             <div className="energy-bar-track">
               <div className="energy-bar-fill" style={{ width: `${snapshotEnergy}%` }} />
@@ -482,6 +512,7 @@ export default function Dashboard() {
           }}
         >
           <div style={{ display: 'flex', gap: '36px', alignItems: 'flex-start', flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+            {/* CareBot avatar: glow + pulsing rings + smiley face + sparkles + green "online" dot */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
               <div className="companion-wrap">
                 <div className="companion-halo" />
@@ -502,6 +533,7 @@ export default function Dashboard() {
               <span style={{ fontSize: '12px', fontWeight: 800, color: textGray, letterSpacing: '0.06em' }}>CareBot</span>
             </div>
 
+            {/* The actual suggestion: title, quick-facts tags, short reason, and the CTA button */}
             <div style={{ flex: '1 1 280px', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                 <p style={{ margin: 0, color: accentLime, fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
@@ -511,10 +543,12 @@ export default function Dashboard() {
                   <span className="live-dot" /> Live
                 </span>
               </div>
+              {/* Name of the activity CareBot is suggesting */}
               <h2 style={{ margin: '14px 0 0', fontSize: 'clamp(2rem, 3.4vw, 2.8rem)', fontWeight: 900, letterSpacing: '-1.2px' }}>
                 {heroRec.activity}
               </h2>
 
+              {/* Quick-look tags: intensity always shows; duration/time only when we know them; buddy tag if one's free */}
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', margin: '18px 0' }}>
                 <span style={tagStyle}>{heroRec.intensity}</span>
                 {hasStructuredTiming && <span style={tagStyle}>{activeRec.durationMinutes} min</span>}
@@ -522,10 +556,12 @@ export default function Dashboard() {
                 {showBuddyChip && <span className="buddy-chip">🤝 {currentUser.recommendation.friendName} is free too</span>}
               </div>
 
+              {/* Why CareBot picked this (clamped to 2 lines so it stays short) */}
               <p className="reason-clamp" style={{ margin: '0 0 28px', color: '#cbd5e1', fontSize: '16px', lineHeight: 1.6, maxWidth: '520px' }}>
                 {heroRec.reason}
               </p>
 
+              {/* Main button — sends the user into the live workout/execution page */}
               <Link
                 href="/active-session"
                 className="dash-btn cta-shimmer"
@@ -541,19 +577,20 @@ export default function Dashboard() {
                   boxShadow: '0 14px 30px rgba(212, 255, 62, 0.3)',
                 }}
               >
-                Start Activity →
+                Start Session →
               </Link>
             </div>
           </div>
 
+          {/* Giant faint background emoji, matched to the activity (run/walk/stretch/rest) */}
           <span className="hero-rec-glyph" aria-hidden="true">{activityGlyph}</span>
         </section>
 
         {/* SECTION DIVIDER */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(212, 255, 62, 0.35))' }} />
-          <span style={{ color: textGray, fontSize: '12px', fontWeight: 800, letterSpacing: '0.25em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-            What would you like to do today?
+            <span style={{ color: textGray, fontSize: '12px', fontWeight: 800, letterSpacing: '0.25em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+            Build your physical-care plan
           </span>
           <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(212, 255, 62, 0.35), transparent)' }} />
         </div>
@@ -607,16 +644,16 @@ export default function Dashboard() {
         >
           <div>
             <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              🗓️ Next available time
+              🗓️ Next training window
             </p>
             <p style={{ margin: '12px 0 0', fontSize: '1.5rem', fontWeight: 800 }}>
               Today · {freeSlot.start}–{freeSlot.end}
             </p>
-            <p style={{ margin: '6px 0 0', color: textGray, fontSize: '14px' }}>{freeSlot.usableMinutes} min available</p>
+            <p style={{ margin: '6px 0 0', color: textGray, fontSize: '14px' }}>{freeSlot.usableMinutes} min available for training</p>
           </div>
 
           <div style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: 700 }}>
-            ✨ Recommended: <span style={{ color: accentLime, fontWeight: 800 }}>{activeRec.activity} · {activeRec.startTime}</span>
+            ✨ Physical-care plan: <span style={{ color: accentLime, fontWeight: 800 }}>{activeRec.activity} · {activeRec.startTime}</span>
           </div>
 
           <Link

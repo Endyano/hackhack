@@ -12,12 +12,12 @@ export const typeColor: Record<CalendarEntry['type'], string> = {
 };
 
 export const typeLabel: Record<CalendarEntry['type'], string> = {
-  class: 'Kelas',
-  free: 'Waktu Luang',
-  meal: 'Makan',
-  study: 'Belajar',
-  activity: 'AI Suggestion',
-  match: 'AI Match ✨',
+  class: 'Class',
+  free: 'Free Time',
+  meal: 'Meal',
+  study: 'Study',
+  activity: 'Training Plan',
+  match: 'Training Match ✨',
 };
 
 export function pad(n: number) {

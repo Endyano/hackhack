@@ -58,7 +58,7 @@ export default function EnergyCheckIn({ userName, energy, onEnergyChange, onCont
           className="checkin-fade"
           style={{ animationDelay: '0.1s', margin: '16px 0 0', fontSize: 'clamp(3.2rem, 7.5vw, 5rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px' }}
         >
-          How much energy do you have today?
+          How ready does your body feel to train today?
         </h1>
 
         <div className="checkin-fade" style={{ animationDelay: '0.15s', marginTop: '60px' }}>

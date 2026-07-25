@@ -95,12 +95,15 @@ function ModeBadge({ children }: { children: ReactNode }) {
 
 export default function ActiveSessionPage() {
   const router = useRouter();
-  const { currentUser, recommendationState, setRecommendationState } = useDemoState();
-  const activeRec = getActiveRecommendation(currentUser, recommendationState);
+  const { currentUser, recommendationState, selectedMovement, sessionSource, setRecommendationState, setSelectedMovement, setSessionSource } = useDemoState();
+  const recommendedActivity = getActiveRecommendation(currentUser, recommendationState);
+  const activeRec = selectedMovement
+    ? { activity: selectedMovement.title, durationMinutes: selectedMovement.durationMinutes, intensity: selectedMovement.intensity }
+    : recommendedActivity;
   const totalSeconds = activeRec.durationMinutes * 60;
 
-  const isSocial = (recommendationState === 'pending' || recommendationState === 'accepted') && currentUser.recommendation.socialCompatible;
-  const mode = detectMode(activeRec.activity, isSocial);
+  const isSocial = sessionSource !== 'move' && !selectedMovement && (recommendationState === 'pending' || recommendationState === 'accepted') && currentUser.recommendation.socialCompatible;
+  const mode = selectedMovement?.mode ?? detectMode(activeRec.activity, isSocial);
 
   // SESSION TIMER (outdoor + social modes)
   const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
@@ -136,21 +139,25 @@ export default function ActiveSessionPage() {
 
   // INDOOR MODE — per-move countdown
   const [stepIndex, setStepIndex] = useState(0);
-  const [moveSecondsLeft, setMoveSecondsLeft] = useState(MOVE_SECONDS);
+  const indoorMoves = selectedMovement?.steps ?? RECOVERY_MOVES;
+  const secondsPerMove = Math.max(MOVE_SECONDS, Math.round(totalSeconds / indoorMoves.length));
+  const [moveSecondsLeft, setMoveSecondsLeft] = useState(secondsPerMove);
 
   useEffect(() => {
     if (mode !== 'indoor') return;
-    setMoveSecondsLeft(MOVE_SECONDS);
+    setMoveSecondsLeft(secondsPerMove);
     const id = setInterval(() => {
       setMoveSecondsLeft((current) => (current > 0 ? current - 1 : 0));
     }, 1000);
     return () => clearInterval(id);
-  }, [mode, stepIndex]);
+  }, [mode, stepIndex, secondsPerMove]);
 
-  const isLastMove = stepIndex === RECOVERY_MOVES.length - 1;
+  const isLastMove = stepIndex === indoorMoves.length - 1;
 
   const handleFinish = () => {
     setRecommendationState('accepted');
+    setSelectedMovement(null);
+    setSessionSource('recommendation');
     router.push('/dashboard');
   };
 
@@ -294,7 +301,7 @@ export default function ActiveSessionPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              <MetricBlock value="5:30" unit="/km" label="Pace" />
+              <MetricBlock value={selectedMovement?.metric?.value ?? '5:30'} unit={selectedMovement?.metric?.unit ?? '/km'} label={selectedMovement?.metric?.label ?? 'Pace'} />
               <MetricBlock value={distanceKm} unit="km" label="Distance" />
               <MetricBlock value={formatTime(secondsLeft)} label="Time Left" />
             </div>
@@ -343,16 +350,16 @@ export default function ActiveSessionPage() {
         {mode === 'indoor' && (
           <>
             <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: textGray }}>
-              Step {stepIndex + 1} of {RECOVERY_MOVES.length}
+              Step {stepIndex + 1} of {indoorMoves.length}
             </p>
-            <ProgressRing percent={((MOVE_SECONDS - moveSecondsLeft) / MOVE_SECONDS) * 100} size={220}>
+            <ProgressRing percent={((secondsPerMove - moveSecondsLeft) / secondsPerMove) * 100} size={220}>
               <div style={{ textAlign: 'center' }}>
-                <span className="session-timer" style={{ display: 'block', fontSize: 'clamp(2.4rem, 7vw, 3.4rem)', fontWeight: 900, color: accentLime, letterSpacing: '-1px' }}>
-                  0:{String(moveSecondsLeft).padStart(2, '0')}
-                </span>
-              </div>
-            </ProgressRing>
-            <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, textAlign: 'center' }}>{RECOVERY_MOVES[stepIndex]}</h2>
+              <span className="session-timer" style={{ display: 'block', fontSize: 'clamp(2.4rem, 7vw, 3.4rem)', fontWeight: 900, color: accentLime, letterSpacing: '-1px' }}>
+                {formatTime(moveSecondsLeft)}
+              </span>
+            </div>
+          </ProgressRing>
+            <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, textAlign: 'center' }}>{indoorMoves[stepIndex]}</h2>
 
             <button
               onClick={handleNextMove}

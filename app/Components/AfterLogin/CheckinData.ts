@@ -1,43 +1,43 @@
 export type Mood = 'positive' | 'neutral' | 'negative';
 
 export const moodMeta: Record<Mood, { emoji: string; label: string; description: string }> = {
-  positive: { emoji: '😊', label: 'Feeling Good', description: 'Energised and ready to take on the day.' },
-  neutral: { emoji: '😐', label: 'Feeling Okay', description: 'Steady — neither high nor low today.' },
-  negative: { emoji: '😔', label: 'Not Feeling Great', description: "Low energy or mood — let's keep it gentle." },
+  positive: { emoji: '💪', label: 'Ready to Train', description: 'Your body feels fresh and ready for training.' },
+  neutral: { emoji: '🚶', label: 'Steady', description: 'Your body can handle a balanced movement session.' },
+  negative: { emoji: '🧘', label: 'Need Recovery', description: 'Your body needs a gentler, recovery-focused session.' },
 };
 
 export function getEnergyLabel(energy: number): string {
-  if (energy <= 20) return 'Take it easy today 🪫';
-  if (energy <= 50) return 'You have some energy to work with 🔋';
-  if (energy <= 80) return "You're feeling energised today ⚡";
-  return "You're ready to move! 🔥";
+  if (energy <= 20) return 'Prioritise recovery today 🪫';
+  if (energy <= 50) return 'Ready for light movement 🔋';
+  if (energy <= 80) return 'Ready for a steady training session ⚡';
+  return 'Ready to push your training! 🔥';
 }
 
 export function getCheckinRecommendation(mood: Mood, energy: number) {
   if (energy <= 20) {
     return {
-      activity: '5-minute stretch & rest',
+      activity: '5-minute recovery mobility',
       intensity: 'Very Light',
-      reason: 'Your energy is low today. Take it easy and focus on rest and recovery.',
+      reason: 'Your training readiness is low today. Prioritise mobility, rest, and recovery.',
     };
   }
   if (energy <= 50) {
     return {
-      activity: '15-minute gentle walk',
+      activity: '15-minute recovery walk',
       intensity: 'Light',
-      reason: 'You have some energy to work with. A gentle walk keeps you active without draining you.',
+      reason: 'A recovery walk supports circulation and keeps your body moving without adding fatigue.',
     };
   }
   if (energy <= 80) {
     return {
-      activity: '20-minute outdoor walk',
+      activity: '20-minute aerobic walk',
       intensity: 'Moderate',
-      reason: 'You have good energy today. A short walk can help you stay active without overdoing it.',
+      reason: 'Your body is ready for steady aerobic work without overloading your recovery.',
     };
   }
   return {
-    activity: '30-minute workout or run',
+      activity: '30-minute training session',
     intensity: 'Vigorous',
-    reason: "You're ready to move! Make the most of your energy with a full workout today.",
+    reason: 'Your training readiness is high. Make the most of it with a focused workout today.',
   };
 }

@@ -9,6 +9,7 @@ import {
   type DemoUser,
   type CareMatchFriend,
   type CareMatchInvite,
+  type SelectedMovement,
 } from './DemoData';
 import type { Mood } from './AfterLogin/CheckinData';
 
@@ -16,6 +17,8 @@ type DemoStateValue = {
   userId: string;
   currentUser: DemoUser;
   recommendationState: RecommendationState;
+  selectedMovement: SelectedMovement | null;
+  sessionSource: 'recommendation' | 'move';
   invitationState: InvitationState;
   calendarEntries: CalendarEntry[];
   friends: CareMatchFriend[];
@@ -24,6 +27,8 @@ type DemoStateValue = {
   checkinEnergy: number | null;
   setUser: (id: string) => void;
   setRecommendationState: (state: RecommendationState) => void;
+  setSelectedMovement: (movement: SelectedMovement | null) => void;
+  setSessionSource: (source: 'recommendation' | 'move') => void;
   setInvitationState: (state: InvitationState) => void;
   addCalendarEntry: (entry: CalendarEntry) => void;
   addFriend: (name: string) => void;
@@ -37,6 +42,8 @@ const DemoStateContext = createContext<DemoStateValue | null>(null);
 export function DemoStateProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState(demoUsers[0].id);
   const [recommendationState, setRecommendationState] = useState<RecommendationState>('pending');
+  const [selectedMovement, setSelectedMovement] = useState<SelectedMovement | null>(null);
+  const [sessionSource, setSessionSource] = useState<'recommendation' | 'move'>('recommendation');
   const [invitationState, setInvitationState] = useState<InvitationState>('pending');
   const [calendarEntries, setCalendarEntries] = useState<CalendarEntry[]>(demoUsers[0].calendar);
   const [friendsByUser, setFriendsByUser] = useState<Record<string, CareMatchFriend[]>>(() =>
@@ -57,6 +64,8 @@ export function DemoStateProvider({ children }: { children: ReactNode }) {
     const nextUser = demoUsers.find((user) => user.id === id) ?? demoUsers[0];
     setUserId(nextUser.id);
     setRecommendationState('pending');
+    setSelectedMovement(null);
+    setSessionSource('recommendation');
     setInvitationState('pending');
     setCalendarEntries(nextUser.calendar);
     setCheckinMood(null);
@@ -118,6 +127,8 @@ export function DemoStateProvider({ children }: { children: ReactNode }) {
         userId,
         currentUser,
         recommendationState,
+        selectedMovement,
+        sessionSource,
         invitationState,
         calendarEntries,
         friends,
@@ -126,6 +137,8 @@ export function DemoStateProvider({ children }: { children: ReactNode }) {
         checkinEnergy,
         setUser,
         setRecommendationState,
+        setSelectedMovement,
+        setSessionSource,
         setInvitationState,
         addCalendarEntry,
         addFriend,

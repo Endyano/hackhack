@@ -17,7 +17,7 @@ export default function LoginRoute() {
     if ((username === 'eric' || username === 'daniel') && password === 'demo') {
       router.push(`/checkin/mood?user=${username}`);
     } else {
-      setError('Username atau password salah. Coba gunakan eric / demo');
+      setError('Incorrect username or password. Try eric / demo');
     }
   };
 

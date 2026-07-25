@@ -34,7 +34,7 @@ export default function MoodCheckIn({ userName, selectedMood, onSelectMood, onCo
           className="checkin-fade"
           style={{ animationDelay: '0.1s', margin: '14px 0 0', fontSize: 'clamp(3.2rem, 7.5vw, 5rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px' }}
         >
-          How are you feeling today?
+          How does your body feel for movement today?
         </h1>
 
         <div
