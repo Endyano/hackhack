@@ -1,15 +1,6 @@
 export type RecommendationState = 'pending' | 'accepted' | 'shortened' | 'replaced' | 'skipped';
 export type InvitationState = 'none' | 'sent' | 'pending' | 'accepted' | 'declined';
 
-export type SelectedMovement = {
-  title: string;
-  intensity: string;
-  durationMinutes: number;
-  mode: 'outdoor' | 'indoor';
-  steps: string[];
-  metric?: { value: string; unit?: string; label: string };
-};
-
 export type CalendarEntry = {
   title: string;
   start: string;
@@ -19,24 +10,6 @@ export type CalendarEntry = {
 };
 
 export type FreeSlot = { start: string; end: string; usableMinutes: number };
-
-export type CareMatchFriend = {
-  id: string;
-  name: string;
-  freeSlots: FreeSlot[];
-};
-
-export type CareMatchInvite = {
-  id: string;
-  fromId: string;
-  fromName: string;
-  toId: string;
-  toName: string;
-  activity: string;
-  start: string;
-  end: string;
-  status: 'pending' | 'accepted' | 'declined';
-};
 
 export type DemoUser = {
   id: string;
@@ -84,7 +57,7 @@ export const demoUsers: DemoUser[] = [
         start: '16:30',
         end: '17:30',
         type: 'match',
-        note: 'You and Daniel are both free, and Daniel’s energy is high!',
+        note: "You and Daniel are both free, and Daniel's energy is high!",
       },
     ],
     freeSlots: [{ start: '16:00', end: '18:00', usableMinutes: 110 }],
@@ -95,7 +68,7 @@ export const demoUsers: DemoUser[] = [
       durationMinutes: 30,
       intensity: 'Easy',
       reason:
-        'You have enough time for a complete session. Because you trained your legs yesterday and your readiness is moderate, the intensity is kept easy.',
+        'You have enough time for a complete session. Because you trained your legs yesterday and your energy is medium, the intensity is kept easy.',
       socialCompatible: true,
       friendName: 'Daniel',
       overlapStart: '16:30',
@@ -135,7 +108,7 @@ export const demoUsers: DemoUser[] = [
       durationMinutes: 30,
       intensity: 'Easy',
       reason:
-        'Your readiness is high and your body is ready for training. This is a good chance to join Eric for a shared run.',
+        'Your energy is high and you are ready to move. This is a good chance to join Eric for a shared run.',
       socialCompatible: true,
       friendName: 'Eric',
       overlapStart: '16:30',
@@ -149,7 +122,7 @@ export const demoUsers: DemoUser[] = [
 ];
 
 export function formatDate() {
-  return new Date().toLocaleDateString('en-GB', {
+  return new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

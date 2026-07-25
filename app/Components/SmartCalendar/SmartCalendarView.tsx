@@ -28,6 +28,10 @@ export interface CalendarEvent {
 
 type SmartCalendarViewProps = {
   events?: CalendarEvent[];
+  /** True when `events` is the hardcoded MOCK_EVENTS fallback rather than
+   *  real synchronised data -- shows a small badge so the two are never
+   *  visually confused. */
+  usingMockData?: boolean;
 };
 
 const DEFAULT_EVENT_COLOR = '#8B5E34';
@@ -38,11 +42,11 @@ const MONTH_LABELS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-function pad2(n: number) {
+export function pad2(n: number) {
   return n.toString().padStart(2, '0');
 }
 
-function toDateKey(d: Date) {
+export function toDateKey(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
@@ -85,7 +89,7 @@ const MOCK_EVENTS: CalendarEvent[] = [
   { id: 'evt-9', title: 'Design Review', date: offsetDateKey(8), startTime: '13:00', endTime: '14:00' },
 ];
 
-export default function SmartCalendarView({ events = MOCK_EVENTS }: SmartCalendarViewProps) {
+export default function SmartCalendarView({ events = MOCK_EVENTS, usingMockData = true }: SmartCalendarViewProps) {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -99,9 +103,20 @@ export default function SmartCalendarView({ events = MOCK_EVENTS }: SmartCalenda
     <div className="w-full rounded-2xl border border-white/10 bg-[#111113] p-5 sm:p-7 text-white">
       {/* HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          {MONTH_LABELS[cursor.getMonth()]} {cursor.getFullYear()}
-        </h2>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {MONTH_LABELS[cursor.getMonth()]} {cursor.getFullYear()}
+          </h2>
+          {usingMockData ? (
+            <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+              Sample data
+            </span>
+          ) : (
+            <span className="rounded-full border border-[#D4FF3E]/35 bg-[#D4FF3E]/[0.08] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#D4FF3E]">
+              Synced from Google Calendar
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center rounded-lg border border-white/10 bg-white/5 overflow-hidden">
           <button

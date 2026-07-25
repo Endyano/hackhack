@@ -1,12 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import BrandMark from './Components/BrandMark';
 
 export default function MainApp() {
   const router = useRouter();
 
-  // Navigate to the login page
+  // Fungsi pindah ke halaman login
   const handleOpenLogin = () => {
     router.push('/login');
   };
@@ -25,7 +24,7 @@ export default function MainApp() {
       backgroundImage: `
         linear-gradient(to right, rgba(9, 12, 11, 1) 0%, rgba(9, 12, 11, 0.8) 35%, rgba(9, 12, 11, 0.2) 100%),
         radial-gradient(circle at 80% 50%, rgba(212, 255, 62, 0.1) 0%, transparent 60%),
-        url('https://images.unsplash.com/photo-1486218119243-13883505764c?auto=format&fit=crop&w=2800&q=90')
+        url('https://images.unsplash.com/photo-1486218119243-13883505764c?auto=format&fit=crop&w=1920&q=80')
       `,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
@@ -118,14 +117,14 @@ export default function MainApp() {
       {/* NAVBAR */}
       <nav className="animate-fade-up" style={{ animationDelay: '0.1s', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '40px 5%', borderBottom: '1px solid rgba(255,255,255,0.05)', zIndex: 10, position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ boxShadow: `0 0 20px rgba(212, 255, 62, 0.2)`, borderRadius: '16px' }}>
-            <BrandMark size={80} />
+          <div style={{ width: '80px', height: '80px', backgroundColor: accentLime, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: bgDark, fontWeight: '900', fontSize: '40px', fontStyle: 'italic', boxShadow: `0 0 20px rgba(212, 255, 62, 0.2)` }}>
+            C
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '40px', fontWeight: '900', letterSpacing: '-1px' }}>
               CareShift<span style={{ fontSize: '18px', verticalAlign: 'super' }}>™</span>
             </h2>
-            <p style={{ margin: 0, fontSize: '16px', color: accentLime, fontWeight: '800' }}>The Physical Care Decision Engine™</p>
+            <p style={{ margin: 0, fontSize: '16px', color: accentLime, fontWeight: '800' }}>The Wellbeing Decision Engine™</p>
           </div>
         </div>
 
@@ -159,15 +158,15 @@ export default function MainApp() {
           </div>
           
           <h1 className="animate-fade-up" style={{ animationDelay: '0.3s', fontSize: '150px', fontWeight: '900', lineHeight: '0.95', margin: '0 0 40px 0', letterSpacing: '-5px', textShadow: '0 10px 30px rgba(0,0,0,0.8)' }}>
-            Train for your <span style={{ color: accentLime, textShadow: '0 0 30px rgba(212, 255, 62, 0.4)' }}>body</span><br />
+            Know your <span style={{ color: accentLime, textShadow: '0 0 30px rgba(212, 255, 62, 0.4)' }}>next</span><br />
             <span style={{ background: 'linear-gradient(90deg, #4ADE80, #38BDF8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
-              today.
+              move.
             </span>
           </h1>
           
           <p className="animate-fade-up" style={{ animationDelay: '0.4s', fontSize: '32px', color: '#E2E8F0', maxWidth: '850px', lineHeight: '1.5', margin: '0 0 50px 0', fontWeight: '400', textShadow: '0 4px 10px rgba(0,0,0,0.8)' }}>
-            Not sure whether to train, build mobility, or prioritise recovery?<br />
-            CareShift turns your training readiness, recent workload, and schedule into one clear physical-care plan.
+            Not sure whether to push, move lightly, recover, or reset?<br />
+            CareShift turns your calendar schedule, recent movement, and current mood into one clear Daily Signal.
           </p>
           
           <div className="animate-fade-up" style={{ animationDelay: '0.5s', borderLeft: `8px solid ${accentLime}`, paddingLeft: '32px', marginBottom: '60px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '20px 32px', borderRadius: '0 20px 20px 0', backdropFilter: 'blur(5px)' }}>
@@ -284,7 +283,7 @@ export default function MainApp() {
                 {/* PROFILE */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <BrandMark size={60} />
+                    <div style={{ width: '60px', height: '60px', backgroundColor: accentLime, borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'black', fontWeight: '900', fontSize: '32px' }}>C</div>
                     <div>
                       <div style={{ fontSize: '24px', fontWeight: 'bold' }}>CareShift™</div>
                       <div style={{ fontSize: '16px', color: accentLime, fontWeight: '800', letterSpacing: '0.5px' }}>YOUR DAY, DECODED</div>
@@ -372,10 +371,10 @@ export default function MainApp() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '30px' }}>
           {[
-            { step: '01', emoji: '📝', title: 'Check your readiness', text: 'Log how your body feels and how ready you are to train in seconds.' },
-            { step: '02', emoji: '🗓️', title: 'Plan around your schedule', text: 'CareShift finds realistic time for training, mobility, or recovery.' },
-            { step: '03', emoji: '🎯', title: 'Get your physical-care plan', text: 'Readiness, recent workload, and calendar availability guide your next session.' },
-            { step: '04', emoji: '🤝', title: 'Train with a partner', text: 'Find a training partner with shared availability and stay consistent together.' },
+            { step: '01', emoji: '📝', title: 'Check in', text: 'Log your mood and energy in seconds — no lengthy tracker to fill out.' },
+            { step: '02', emoji: '🗓️', title: 'Sync your calendar', text: 'CareShift reads your schedule to see where the real free time is.' },
+            { step: '03', emoji: '🎯', title: 'Get your Daily Signal', text: 'Mood, energy, and calendar combine into one decision: push, move, recover, or reset.' },
+            { step: '04', emoji: '🤝', title: 'Move with CareMatch', text: 'See who else is free right now and pair up for an easier, more enjoyable session.' },
           ].map((item) => (
             <div key={item.step} style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '32px' }}>
               <div style={{ color: accentLime, fontSize: '16px', fontWeight: '900', letterSpacing: '2px' }}>{item.step}</div>
@@ -396,10 +395,10 @@ export default function MainApp() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '30px' }}>
           {[
-            { title: 'TRAIN', text: 'Your readiness and schedule support a focused strength or cardio session.' },
-            { title: 'MOBILISE', text: 'Your day is tight. Use a short mobility session to maintain range of motion.' },
-            { title: 'PARTNER', text: 'Training feels better together. CareMatch finds an available partner.' },
-            { title: 'RECOVER', text: 'Your body needs lower load today. Recovery work is productive training too.' },
+            { title: 'MOVE', text: 'You have energy and a free window. Keep the day alive with a real session.' },
+            { title: 'SYNC', text: 'Your schedule is tight. Fit in something light between the gaps you already have.' },
+            { title: 'MATCH', text: 'Motivation is low but company helps. CareMatch finds someone free to join you.' },
+            { title: 'RECOVER', text: 'Mood and energy are low. Rest is the productive choice today — no guilt.' },
           ].map((item) => (
             <div key={item.title} style={{ border: `2px solid ${accentLime}`, borderRadius: '24px', padding: '32px', backgroundColor: 'rgba(212, 255, 62, 0.03)' }}>
               <h3 style={{ margin: '0 0 16px', fontSize: '28px', fontWeight: '900', color: accentLime }}>{item.title}</h3>
@@ -418,9 +417,9 @@ export default function MainApp() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '900px' }}>
           {[
-            { tag: 'NEW', title: 'Training Calendar', text: 'CareShift now surfaces real calendar space for workouts, mobility, and recovery.' },
-            { tag: 'NEW', title: 'Training Partners', text: 'Match with someone who is available to make training more consistent.' },
-            { tag: 'IMPROVED', title: 'Readiness Check-in', text: 'A faster daily body-status check that feeds your physical-care plan.' },
+            { tag: 'NEW', title: 'Smart Calendar', text: 'CareShift now reads your calendar directly to surface real free time for movement.' },
+            { tag: 'NEW', title: 'CareMatch', text: 'Get paired with someone else who is free right now, so moving feels less like a chore.' },
+            { tag: 'IMPROVED', title: 'Mood & Energy check-in', text: 'A faster daily check-in that feeds straight into your Daily Signal.' },
           ].map((item) => (
             <div key={item.title} style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '24px' }}>
               <span style={{ backgroundColor: accentLime, color: bgDark, fontSize: '13px', fontWeight: '900', padding: '6px 16px', borderRadius: '100px', flexShrink: 0 }}>{item.tag}</span>
@@ -437,12 +436,13 @@ export default function MainApp() {
       <section id="about" style={{ padding: '100px 5% 160px', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
         <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>ABOUT</p>
         <h2 style={{ margin: '16px 0 32px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
-          Built for people who need their training to fit their real body and schedule.
+          Built for people who don't need another tracker.
         </h2>
         <p style={{ margin: '0 0 40px', fontSize: '22px', color: '#E2E8F0', maxWidth: '850px', lineHeight: '1.6' }}>
-          CareShift is not another step counter. It helps answer one practical question every day:
-          what kind of physical care does your body need next? By combining your schedule, recent training,
-          and readiness, CareShift turns raw signals into a sustainable training or recovery decision.
+          CareShift isn't here to count your steps. It's here to answer one question every day:
+          what should you actually do next? By combining your calendar, your mood, and your energy,
+          CareShift turns raw data into a single, guilt-free decision — and CareMatch makes sure you
+          don't have to make that decision alone.
         </p>
         <button
           className="btn-primary"

@@ -14,11 +14,12 @@ export default function LoginRoute() {
     e.preventDefault();
     setError('');
 
-    if ((username === 'eric' || username === 'daniel') && password === 'demo') {
-      router.push(`/checkin/mood?user=${username}`);
-    } else {
-      setError('Incorrect username or password. Try eric / demo');
-    }
+    // Demo build: no real auth (per CLAUDE.md, out of scope for the MVP) --
+    // any username/password succeeds so every seeded dummy account is
+    // reachable. Unrecognized usernames fall back to the first demo persona
+    // (handled by DemoStateContext's setUser).
+    const targetUser = username.trim() || 'eric';
+    router.push(`/checkin/mood?user=${encodeURIComponent(targetUser)}`);
   };
 
   const handleBack = () => {

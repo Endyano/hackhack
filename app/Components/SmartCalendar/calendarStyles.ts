@@ -16,8 +16,8 @@ export const typeLabel: Record<CalendarEntry['type'], string> = {
   free: 'Free Time',
   meal: 'Meal',
   study: 'Study',
-  activity: 'Training Plan',
-  match: 'Training Match ✨',
+  activity: 'AI Suggestion',
+  match: 'AI Match ✨',
 };
 
 export function pad(n: number) {

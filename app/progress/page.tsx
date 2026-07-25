@@ -6,25 +6,9 @@ const accentLime = '#D4FF3E';
 const textGray = '#9CA3AF';
 
 const stats = [
-  { icon: '⚡', label: 'Readiness Matched', description: 'You chose recovery sessions when readiness was low.' },
-  { icon: '🗓️', label: 'Training Planned', description: '3 sessions fitted into your real calendar gaps.' },
-  { icon: '🤝', label: 'Partner Training', description: '1 shared training session completed.' },
-];
-
-const weeklyTraining = [
-  { day: 'Mon', minutes: 35, kind: 'Strength' },
-  { day: 'Tue', minutes: 20, kind: 'Mobility' },
-  { day: 'Wed', minutes: 45, kind: 'Cardio' },
-  { day: 'Thu', minutes: 0, kind: 'Recovery' },
-  { day: 'Fri', minutes: 35, kind: 'Strength' },
-  { day: 'Sat', minutes: 25, kind: 'Cardio' },
-  { day: 'Sun', minutes: 0, kind: 'Recovery' },
-];
-
-const recentSessions = [
-  { icon: '🏃', title: 'Easy Run', detail: '30 min · Cardio', date: 'Today' },
-  { icon: '🧘', title: 'Mobility Flow', detail: '20 min · Recovery', date: 'Yesterday' },
-  { icon: '💪', title: 'Upper-Body Strength', detail: '35 min · Strength', date: 'Mon' },
+  { icon: '⚡', label: 'Energy Matched', description: 'You chose light routines on low-energy days.' },
+  { icon: '🗓️', label: 'Schedule Optimized', description: '3 routines squeezed into free calendar gaps.' },
+  { icon: '🤝', label: 'Social Sync', description: '1 joint CareMatch session completed.' },
 ];
 
 function DonutChart({ percent, size = 220, strokeWidth = 18 }: { percent: number; size?: number; strokeWidth?: number }) {
@@ -57,8 +41,8 @@ export default function ProgressPage() {
   return (
     <PageShell
       eyebrow="Feature · Progress"
-      title="Training Progress"
-      description="Track your training consistency, recovery choices, and physical-care progress over time."
+      title="Progress"
+      description="Track your activity history and physical wellbeing over time."
       backgroundImage="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1920&q=80"
     >
       <style>
@@ -93,10 +77,6 @@ export default function ProgressPage() {
             line-height: 1.6;
           }
           .stat-row:hover { border-color: rgba(212, 255, 62, 0.3); background: rgba(255,255,255,0.05); }
-          .fitness-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-          .progress-detail-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 20px; }
-          .training-bars { display: flex; align-items: end; justify-content: space-between; gap: 10px; height: 180px; padding-top: 18px; }
-          @media (max-width: 820px) { .fitness-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .progress-detail-grid { grid-template-columns: 1fr; } }
         `}
       </style>
 
@@ -135,7 +115,7 @@ export default function ProgressPage() {
           </span>
 
           <p style={{ margin: '20px 0 0', fontSize: 'clamp(1.3rem, 2.4vw, 1.7rem)', fontWeight: 800, lineHeight: 1.5, maxWidth: '760px' }}>
-            You completed <span style={{ color: accentLime }}>3 recovery-aware sessions</span> this week. Placing them after your busiest calendar blocks supported consistency without overloading your body.
+            You reduced your daily stress levels by <span style={{ color: accentLime }}>40%</span> this week. Executing those 3 short walks right after your busiest calendar blocks kept your mood stable.
           </p>
         </div>
       </div>
@@ -174,70 +154,6 @@ export default function ProgressPage() {
           </div>
         </div>
       </div>
-
-      {/* 3. TRAINING SNAPSHOT */}
-      <section>
-        <p style={{ margin: '0 0 14px', color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>This Week</p>
-        <div className="fitness-metric-grid">
-          {[
-            ['🔥', '4 / 5', 'Sessions completed'],
-            ['⏱️', '135 min', 'Training volume'],
-            ['📍', '12.4 km', 'Distance covered'],
-            ['🌱', '3 days', 'Current streak'],
-          ].map(([icon, value, label]) => (
-            <div key={label} style={{ padding: '20px', borderRadius: '20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ fontSize: '22px' }}>{icon}</span>
-              <p style={{ margin: '14px 0 3px', fontSize: '1.55rem', fontWeight: 900 }}>{value}</p>
-              <p style={{ margin: 0, color: textGray, fontSize: '13px' }}>{label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 4. WEEKLY LOAD, RECOVERY, AND HISTORY */}
-      <div className="progress-detail-grid">
-        <section style={{ padding: '26px', borderRadius: '28px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'baseline' }}>
-            <div>
-              <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Weekly Load</p>
-              <h2 style={{ margin: '8px 0 0', fontSize: '1.25rem' }}>Your training minutes</h2>
-            </div>
-            <span style={{ color: textGray, fontSize: '13px' }}>Goal: 150 min</span>
-          </div>
-          <div className="training-bars">
-            {weeklyTraining.map((entry) => (
-              <div key={entry.day} style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-                <div style={{ height: '132px', display: 'flex', alignItems: 'end', justifyContent: 'center' }}>
-                  <div title={`${entry.day}: ${entry.minutes} min ${entry.kind}`} style={{ width: '100%', maxWidth: '30px', height: `${Math.max(entry.minutes * 2.5, entry.minutes ? 18 : 6)}px`, borderRadius: '10px 10px 4px 4px', background: entry.minutes ? accentLime : 'rgba(255,255,255,0.12)', boxShadow: entry.minutes ? '0 0 18px rgba(212,255,62,0.18)' : 'none' }} />
-                </div>
-                <p style={{ margin: '8px 0 0', color: textGray, fontSize: '11px', fontWeight: 700 }}>{entry.day}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section style={{ padding: '26px', borderRadius: '28px', background: 'linear-gradient(160deg, rgba(74, 222, 128, 0.1), rgba(255,255,255,0.04))', border: '1px solid rgba(74, 222, 128, 0.25)' }}>
-          <p style={{ margin: 0, color: '#86efac', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Recovery Status</p>
-          <h2 style={{ margin: '10px 0 0', fontSize: '1.5rem' }}>Ready for steady training</h2>
-          <p style={{ margin: '10px 0 0', color: '#cbd5e1', lineHeight: 1.6, fontSize: '14px' }}>You balanced your last strength session with mobility work. Keep your next session moderate.</p>
-          <div style={{ marginTop: '22px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ flex: 1, height: '10px', borderRadius: '999px', background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}><div style={{ width: '76%', height: '100%', borderRadius: 'inherit', background: '#4ade80' }} /></div>
-            <strong style={{ color: '#86efac', fontSize: '14px' }}>76%</strong>
-          </div>
-        </section>
-      </div>
-
-      <section style={{ padding: '26px', borderRadius: '28px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <p style={{ margin: 0, color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Recent Sessions</p>
-        <div style={{ display: 'grid', gap: '10px', marginTop: '16px' }}>
-          {recentSessions.map((session) => (
-            <div key={session.title} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '13px' }}><span style={{ fontSize: '22px' }}>{session.icon}</span><div><strong>{session.title}</strong><p style={{ margin: '4px 0 0', color: textGray, fontSize: '13px' }}>{session.detail}</p></div></div>
-              <span style={{ color: textGray, fontSize: '13px' }}>{session.date}</span>
-            </div>
-          ))}
-        </div>
-      </section>
     </PageShell>
   );
 }

@@ -3,7 +3,7 @@ import { DemoStateProvider } from './Components/DemoStateContext'
 
 export const metadata = {
   title: 'CareShift MVP',
-  description: 'AI physical-care planner for training, recovery, and movement',
+  description: 'AI Wellbeing Planner & CareMatch',
 }
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id">
+    <html lang="en">
       <body style={{ margin: 0, backgroundColor: '#121212', fontFamily: 'sans-serif' }}>
         <DemoStateProvider>{children}</DemoStateProvider>
       </body>

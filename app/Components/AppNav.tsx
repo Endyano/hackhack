@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDemoState } from './DemoStateContext';
-import BrandMark from './BrandMark';
 
+const bgDark = '#090C0B';
 const accentLime = '#D4FF3E';
 
 export default function AppNav() {
@@ -22,13 +22,29 @@ export default function AppNav() {
       }}
     >
       <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '18px', textDecoration: 'none', color: 'inherit' }}>
-        <BrandMark size={60} />
+        <div
+          style={{
+            width: '60px',
+            height: '60px',
+            backgroundColor: accentLime,
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: bgDark,
+            fontWeight: 900,
+            fontSize: '30px',
+            fontStyle: 'italic',
+          }}
+        >
+          C
+        </div>
         <div>
           <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 900, letterSpacing: '-0.5px' }}>
             CareShift<span style={{ fontSize: '13px', verticalAlign: 'super' }}>™</span>
           </h2>
           <p style={{ margin: 0, fontSize: '13px', color: accentLime, fontWeight: 800 }}>
-            The Physical Care Decision Engine™
+            The Wellbeing Decision Engine™
           </p>
         </div>
       </Link>

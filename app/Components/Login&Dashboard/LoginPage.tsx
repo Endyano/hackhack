@@ -204,7 +204,7 @@ export default function LoginPage({
           className="login-fade"
           style={{ animationDelay: '0.1s', margin: 0, fontSize: 'clamp(3.4rem, 8vw, 5.2rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px' }}
         >
-          Sign in to your <span style={{ color: accentLime }}>demo</span> account
+          Log in to a <span style={{ color: accentLime }}>demo</span> account
         </h1>
 
         {/* QUICK DEMO CHIPS */}
@@ -304,7 +304,7 @@ export default function LoginPage({
               marginTop: '8px',
             }}
           >
-            Sign in to Dashboard
+            Log in to Dashboard
           </button>
         </form>
       </div>
