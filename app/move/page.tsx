@@ -45,9 +45,9 @@ export default function MovePage() {
 
   return (
     <PageShell
-      eyebrow="Fitur · Move"
+      eyebrow="Feature · Move"
       title="Move"
-      description="Cari aktivitas lain kalau rekomendasi utama nggak cocok buat kamu hari ini."
+      description="Find something else if the main recommendation doesn't fit your day."
       backgroundImage="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1920&q=80"
     >
       <style>

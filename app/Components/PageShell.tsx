@@ -48,7 +48,7 @@ export default function PageShell({ eyebrow, title, description, children, conte
       <div style={{ maxWidth: contentMaxWidth, margin: '0 auto', padding: '32px 5% 60px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
         <div>
           <Link href="/dashboard" className="back-link" style={{ color: textGray, fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>
-            ← Kembali ke Dashboard
+            ← Back to Dashboard
           </Link>
           <p style={{ margin: '18px 0 0', color: accentLime, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
             {eyebrow}

@@ -64,7 +64,7 @@ export default function AppNav() {
             fontSize: '16px',
           }}
         >
-          Ganti Pengguna
+          Switch User
         </button>
         <button
           onClick={() => router.push('/')}

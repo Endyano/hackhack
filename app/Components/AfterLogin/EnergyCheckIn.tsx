@@ -7,13 +7,14 @@ type EnergyCheckInProps = {
   onEnergyChange: (value: number) => void;
   onContinue: () => void;
   onBack: () => void;
+  submitting?: boolean;
 };
 
 const accentLime = '#D4FF3E';
 const bgDark = '#090C0B';
 const textGray = '#9CA3AF';
 
-export default function EnergyCheckIn({ userName, energy, onEnergyChange, onContinue, onBack }: EnergyCheckInProps) {
+export default function EnergyCheckIn({ userName, energy, onEnergyChange, onContinue, onBack, submitting }: EnergyCheckInProps) {
   return (
     <CheckinShell step="STEP 2 · ENERGY" onBack={onBack}>
       <style>
@@ -87,6 +88,7 @@ export default function EnergyCheckIn({ userName, energy, onEnergyChange, onCont
 
         <button
           onClick={onContinue}
+          disabled={submitting}
           className="checkin-fade checkin-cta"
           style={{
             animationDelay: '0.3s',
@@ -98,11 +100,12 @@ export default function EnergyCheckIn({ userName, energy, onEnergyChange, onCont
             color: bgDark,
             fontWeight: 900,
             fontSize: '18px',
-            cursor: 'pointer',
+            cursor: submitting ? 'default' : 'pointer',
+            opacity: submitting ? 0.7 : 1,
             boxShadow: '0 14px 30px rgba(212, 255, 62, 0.3)',
           }}
         >
-          Continue
+          {submitting ? 'Finding your plan…' : 'Continue'}
         </button>
       </div>
     </CheckinShell>

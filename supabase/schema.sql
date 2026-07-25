@@ -9,6 +9,7 @@ drop table if exists public.activity_invitations cascade;
 drop table if exists public.friendships cascade;
 drop table if exists public.activity_recommendations cascade;
 drop table if exists public.daily_check_ins cascade;
+drop table if exists public.google_calendar_connections cascade;
 drop table if exists public.calendar_events cascade;
 drop table if exists public.user_preferences cascade;
 drop table if exists public.users cascade;
@@ -40,7 +41,31 @@ create table public.calendar_events (
   start_time timestamp with time zone not null,
   end_time timestamp with time zone not null,
   event_type text,
+  -- Google Calendar sync fields. external_event_id is null for manual/seed
+  -- events; the partial unique index below only enforces uniqueness where
+  -- it's set, so multiple manual events can still coexist with null.
+  external_event_id text,
+  source text not null default 'manual' check (source in ('manual', 'google_calendar')),
+  last_synced_at timestamp with time zone,
   constraint calendar_events_valid_time check (end_time > start_time)
+);
+
+create unique index calendar_events_user_external_id_key
+  on public.calendar_events (user_id, external_event_id)
+  where external_event_id is not null;
+
+-- One Google Calendar connection per user. Service-role access only --
+-- tokens here are never sent to the frontend. Plaintext for MVP speed;
+-- see supabase/migration_add_google_calendar.sql for the security note.
+create table public.google_calendar_connections (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references public.users(id) on delete cascade,
+  access_token text not null,
+  refresh_token text,
+  token_expiry timestamp with time zone,
+  scope text,
+  connected_at timestamp with time zone not null default now(),
+  last_synced_at timestamp with time zone
 );
 
 create table public.daily_check_ins (

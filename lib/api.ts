@@ -381,3 +381,75 @@ export function declineCareMatchInvitation(invitationId: string): Promise<Activi
     method: "PATCH",
   });
 }
+
+// ============================================================
+// Calendar: events, free-slot detection, Google Calendar sync
+// ============================================================
+export interface CalendarEventDto {
+  id: string;
+  user_id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+  event_type: string | null;
+  external_event_id: string | null;
+  source: "manual" | "google_calendar";
+  last_synced_at: string | null;
+}
+
+export interface FreeSlotItem {
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+}
+
+export interface FreeSlotsResponse {
+  date: string;
+  source: "manual" | "google_calendar";
+  free_slots: FreeSlotItem[];
+}
+
+export interface GoogleConnectionStatus {
+  connected: boolean;
+  connected_at: string | null;
+  last_synced_at: string | null;
+}
+
+export interface GoogleSyncResult {
+  synced: number;
+  removed: number;
+  last_synced_at: string;
+}
+
+export function getCalendarEvents(userId: string, date?: string): Promise<CalendarEventDto[]> {
+  const query = date ? `?date=${encodeURIComponent(date)}` : "";
+  return request<CalendarEventDto[]>(`/calendar/${userId}${query}`);
+}
+
+export function getFreeSlots(userId: string, date?: string): Promise<FreeSlotsResponse> {
+  const query = date ? `?date=${encodeURIComponent(date)}` : "";
+  return request<FreeSlotsResponse>(`/calendar/${userId}/free-slots${query}`);
+}
+
+// Not a fetch -- this is a real browser navigation target (Google's consent
+// screen), so callers should do `window.location.href = googleConnectUrl(id)`.
+export function googleConnectUrl(userId: string): string {
+  return `${API_BASE}/calendar/google/connect?user_id=${encodeURIComponent(userId)}`;
+}
+
+export function getGoogleConnectionStatus(userId: string): Promise<GoogleConnectionStatus> {
+  return request<GoogleConnectionStatus>(`/calendar/google/status/${userId}`);
+}
+
+export function syncGoogleCalendar(userId: string): Promise<GoogleSyncResult> {
+  return request<GoogleSyncResult>("/calendar/google/sync", {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId }),
+  });
+}
+
+export function disconnectGoogleCalendar(userId: string): Promise<{ disconnected: boolean }> {
+  return request<{ disconnected: boolean }>(`/calendar/google/disconnect/${userId}`, {
+    method: "DELETE",
+  });
+}

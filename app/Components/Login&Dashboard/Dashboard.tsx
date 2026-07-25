@@ -84,25 +84,45 @@ function getGreeting() {
   return 'Good evening';
 }
 
-const recActionMeta: { state: 'accepted' | 'shortened' | 'replaced' | 'skipped'; label: string }[] = [
-  { state: 'accepted', label: 'Accept' },
-  { state: 'shortened', label: 'Shorten' },
-  { state: 'replaced', label: 'Replace' },
-  { state: 'skipped', label: 'Skip' },
+const recActionMeta: { action: 'accept' | 'shorten' | 'replace' | 'skip'; state: 'accepted' | 'shortened' | 'replaced' | 'skipped'; label: string }[] = [
+  { action: 'accept', state: 'accepted', label: 'Accept' },
+  { action: 'shorten', state: 'shortened', label: 'Shorten' },
+  { action: 'replace', state: 'replaced', label: 'Replace' },
+  { action: 'skip', state: 'skipped', label: 'Skip' },
 ];
 
 export default function Dashboard() {
-  const { currentUser, checkinMood, checkinEnergy, recommendationState, setRecommendationState } = useDemoState();
+  const {
+    currentUser,
+    displayName,
+    checkinMood,
+    checkinEnergy,
+    recommendationState,
+    liveRecommendation,
+    recommendationLoading,
+    applyRecommendationAction,
+  } = useDemoState();
 
   const currentDate = formatDate();
   const hasCheckedInToday = checkinMood !== null && checkinEnergy !== null;
 
   const activeRec = getActiveRecommendation(currentUser, recommendationState);
-  const todaysCheckin = hasCheckedInToday
-    ? { mood: checkinMood!, energy: checkinEnergy!, rec: getCheckinRecommendation(checkinMood!, checkinEnergy!) }
-    : null;
-  const heroRec = todaysCheckin ? todaysCheckin.rec : activeRec;
-  const hasStructuredTiming = !todaysCheckin;
+
+  // Prefer the real Foundry response from the backend (set once the user
+  // completes the check-in flow). Fall back to the local check-in ladder,
+  // then to the seeded demo recommendation, so the card never looks empty.
+  const heroRec = liveRecommendation
+    ? {
+        activity: liveRecommendation.activity,
+        intensity: liveRecommendation.intensity,
+        reason: liveRecommendation.reason,
+        durationMinutes: liveRecommendation.duration_minutes as number | undefined,
+        startTime: liveRecommendation.start_time as string | undefined,
+      }
+    : hasCheckedInToday
+      ? { ...getCheckinRecommendation(checkinMood!, checkinEnergy!), durationMinutes: undefined, startTime: undefined }
+      : { ...activeRec, durationMinutes: activeRec.durationMinutes as number | undefined, startTime: activeRec.startTime as string | undefined };
+  const hasStructuredTiming = heroRec.durationMinutes !== undefined && heroRec.startTime !== undefined;
 
   const snapshotMoodEmoji = checkinMood ? moodMeta[checkinMood].emoji : fallbackMoodEmoji[currentUser.mood] ?? '😐';
   const snapshotMoodLabel = checkinMood ? moodMeta[checkinMood].label : currentUser.mood;
@@ -111,7 +131,10 @@ export default function Dashboard() {
 
   const freeSlot = currentUser.freeSlots[0];
   const activityGlyph = getActivityGlyph(heroRec.activity);
-  const showBuddyChip = hasStructuredTiming && recommendationState === 'pending' && currentUser.recommendation.socialCompatible;
+  const buddyName = liveRecommendation?.carematch.friend_name ?? currentUser.recommendation.friendName;
+  const showBuddyChip =
+    recommendationState === 'pending' &&
+    (liveRecommendation ? liveRecommendation.social_compatible : !hasCheckedInToday && currentUser.recommendation.socialCompatible);
 
   return (
     <div
@@ -427,7 +450,7 @@ export default function Dashboard() {
           <div>
             <p style={{ margin: 0, color: textGray, fontSize: '14px', fontWeight: 600 }}>{currentDate}</p>
             <h1 style={{ margin: '10px 0 6px', fontSize: 'clamp(2.4rem, 4vw, 3.4rem)', fontWeight: 900, letterSpacing: '-1.5px' }}>
-              {getGreeting()}, <span style={{ color: accentLime }}>{currentUser.name}</span> 👋
+              {getGreeting()}, <span style={{ color: accentLime }}>{displayName}</span> 👋
             </h1>
             <p style={{ margin: 0, color: textGray, fontSize: '16px', fontWeight: 600 }}>Your wellbeing snapshot</p>
           </div>
@@ -515,7 +538,7 @@ export default function Dashboard() {
                   ✨ Recommended for you
                 </p>
                 <span className="live-badge" style={{ color: textGray, fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  <span className="live-dot" /> Live
+                  <span className="live-dot" /> {recommendationLoading ? 'Thinking…' : 'Live'}
                 </span>
               </div>
               <h2 style={{ margin: '14px 0 0', fontSize: 'clamp(2rem, 3.4vw, 2.8rem)', fontWeight: 900, letterSpacing: '-1.2px' }}>
@@ -524,41 +547,41 @@ export default function Dashboard() {
 
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', margin: '18px 0' }}>
                 <span style={tagStyle}>{heroRec.intensity}</span>
-                {hasStructuredTiming && <span style={tagStyle}>{activeRec.durationMinutes} min</span>}
-                {hasStructuredTiming && <span style={tagStyle}>Today · {activeRec.startTime}</span>}
-                {showBuddyChip && <span className="buddy-chip">🤝 {currentUser.recommendation.friendName} is free too</span>}
+                {hasStructuredTiming && <span style={tagStyle}>{heroRec.durationMinutes} min</span>}
+                {hasStructuredTiming && <span style={tagStyle}>Today · {heroRec.startTime}</span>}
+                {showBuddyChip && <span className="buddy-chip">🤝 {buddyName} is free too</span>}
               </div>
 
               <p className="reason-clamp" style={{ margin: '0 0 28px', color: '#cbd5e1', fontSize: '16px', lineHeight: 1.6, maxWidth: '520px' }}>
                 {heroRec.reason}
               </p>
 
-              {hasStructuredTiming && (
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
-                  {recActionMeta.map(({ state, label }) => {
-                    const isActive = recommendationState === state;
-                    return (
-                      <button
-                        key={state}
-                        onClick={() => setRecommendationState(state)}
-                        className="dash-btn"
-                        style={{
-                          padding: '10px 20px',
-                          borderRadius: '100px',
-                          border: `1px solid ${isActive ? accentLime : 'rgba(255,255,255,0.16)'}`,
-                          background: isActive ? accentLime : 'rgba(255,255,255,0.04)',
-                          color: isActive ? bgDark : '#e2e8f0',
-                          fontWeight: 800,
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                {recActionMeta.map(({ action, state, label }) => {
+                  const isActive = recommendationState === state;
+                  return (
+                    <button
+                      key={state}
+                      onClick={() => applyRecommendationAction(action)}
+                      disabled={recommendationLoading}
+                      className="dash-btn"
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: '100px',
+                        border: `1px solid ${isActive ? accentLime : 'rgba(255,255,255,0.16)'}`,
+                        background: isActive ? accentLime : 'rgba(255,255,255,0.04)',
+                        color: isActive ? bgDark : '#e2e8f0',
+                        fontWeight: 800,
+                        fontSize: '13px',
+                        cursor: recommendationLoading ? 'default' : 'pointer',
+                        opacity: recommendationLoading ? 0.6 : 1,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
 
               <Link
                 href="/active-session"
@@ -650,7 +673,7 @@ export default function Dashboard() {
           </div>
 
           <div style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: 700 }}>
-            ✨ Recommended: <span style={{ color: accentLime, fontWeight: 800 }}>{activeRec.activity} · {activeRec.startTime}</span>
+            ✨ Recommended: <span style={{ color: accentLime, fontWeight: 800 }}>{heroRec.activity}{heroRec.startTime ? ` · ${heroRec.startTime}` : ''}</span>
           </div>
 
           <Link

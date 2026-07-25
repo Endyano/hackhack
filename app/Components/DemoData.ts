@@ -57,7 +57,7 @@ export const demoUsers: DemoUser[] = [
         start: '16:30',
         end: '17:30',
         type: 'match',
-        note: 'Kamu dan Daniel sama-sama free, dan energi Daniel lagi tinggi!',
+        note: "You and Daniel are both free, and Daniel's energy is high!",
       },
     ],
     freeSlots: [{ start: '16:00', end: '18:00', usableMinutes: 110 }],
@@ -97,7 +97,7 @@ export const demoUsers: DemoUser[] = [
         start: '17:00',
         end: '17:30',
         type: 'match',
-        note: 'Kamu dan Eric sama-sama free saat ini.',
+        note: 'You and Eric are both free right now.',
       },
     ],
     freeSlots: [{ start: '16:30', end: '18:30', usableMinutes: 120 }],
@@ -122,7 +122,7 @@ export const demoUsers: DemoUser[] = [
 ];
 
 export function formatDate() {
-  return new Date().toLocaleDateString('id-ID', {
+  return new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

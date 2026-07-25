@@ -13,7 +13,7 @@ type AISchedulerProps = {
 
 /**
  * "Mutual Free Time Sync" — when the parsed text mentions the user's CareMatch
- * buddy (e.g. "...sama Daniel"), the AI treats it as a joint-activity match
+ * buddy (e.g. "...with Daniel"), the AI treats it as a joint-activity match
  * instead of a plain personal entry: the buddy's name is stripped out of the
  * title and the entry is tagged `type: 'match'` with an explanatory note.
  * In production this is where a real overlap-check against both Google
@@ -24,13 +24,14 @@ function parseScheduleInput(raw: string, friendName?: string): CalendarEntry {
 
   let startMinutes: number;
   const timeMatch =
-    text.match(/jam\s*(\d{1,2})(?:[.:](\d{2}))?\s*(pagi|siang|sore|malam)?/i) ?? text.match(/(\d{1,2})[.:](\d{2})/);
+    text.match(/(?:at\s*)?(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)\b/i) ?? text.match(/(\d{1,2})[.:](\d{2})/);
 
   if (timeMatch) {
     let hour = parseInt(timeMatch[1], 10);
     const minute = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
     const meridiem = timeMatch[3]?.toLowerCase();
-    if ((meridiem === 'sore' || meridiem === 'malam') && hour < 12) hour += 12;
+    if (meridiem === 'pm' && hour < 12) hour += 12;
+    if (meridiem === 'am' && hour === 12) hour = 0;
     startMinutes = hour * 60 + minute;
     text = text.replace(timeMatch[0], ' ');
   } else {
@@ -39,26 +40,26 @@ function parseScheduleInput(raw: string, friendName?: string): CalendarEntry {
   }
 
   let durationMinutes = 30;
-  const durationMatch = raw.match(/(\d+)\s*jam/i) ?? raw.match(/(\d+)\s*menit/i);
+  const durationMatch = raw.match(/(\d+)\s*(?:hours?|hrs?)/i) ?? raw.match(/(\d+)\s*(?:minutes?|mins?)/i);
   if (durationMatch) {
     const value = parseInt(durationMatch[1], 10);
-    durationMinutes = /jam/i.test(durationMatch[0]) ? value * 60 : value;
+    durationMinutes = /hours?|hrs?/i.test(durationMatch[0]) ? value * 60 : value;
     text = text.replace(durationMatch[0], ' ');
   }
 
   let mentionsFriend = false;
   if (friendName) {
-    const friendMatch = new RegExp(`\\b(sama|dengan|bareng)\\s+${friendName}\\b`, 'i');
+    const friendMatch = new RegExp(`\\bwith\\s+${friendName}\\b`, 'i');
     mentionsFriend = friendMatch.test(text);
     text = text.replace(friendMatch, ' ');
   }
 
   text = text
-    .replace(/\b(besok|hari ini|nanti|pagi|siang|sore|malam)\b/gi, ' ')
+    .replace(/\b(tomorrow|today|later|morning|noon|afternoon|evening)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  const cleanTitle = text.length > 0 ? text.charAt(0).toUpperCase() + text.slice(1) : 'Aktivitas baru';
+  const cleanTitle = text.length > 0 ? text.charAt(0).toUpperCase() + text.slice(1) : 'New activity';
   const start = fromMinutes(startMinutes);
   const end = fromMinutes(startMinutes + durationMinutes);
 
@@ -68,7 +69,7 @@ function parseScheduleInput(raw: string, friendName?: string): CalendarEntry {
       start,
       end,
       type: 'match',
-      note: `AI mendeteksi kamu dan ${friendName} sama-sama free di jam ini — energi ${friendName} lagi bagus!`,
+      note: `AI noticed you and ${friendName} are both free at this time — ${friendName}'s energy is looking great!`,
     };
   }
 
@@ -98,7 +99,7 @@ export default function AIScheduler({ calendarEntries, onAddEntry, friendName }:
     }
 
     const recognition = new SpeechRecognitionCtor();
-    recognition.lang = 'id-ID';
+    recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -126,8 +127,8 @@ export default function AIScheduler({ calendarEntries, onAddEntry, friendName }:
       onAddEntry(entry);
       setFeedback(
         entry.type === 'match'
-          ? `AI menemukan waktu bareng: "${entry.title}" pukul ${entry.start}–${entry.end}.`
-          : `AI menambahkan "${entry.title}" pukul ${entry.start}–${entry.end}.`,
+          ? `AI found a shared time slot: "${entry.title}" at ${entry.start}–${entry.end}.`
+          : `AI added "${entry.title}" at ${entry.start}–${entry.end}.`,
       );
       setInputText('');
       setIsProcessing(false);
@@ -140,25 +141,25 @@ export default function AIScheduler({ calendarEntries, onAddEntry, friendName }:
   return (
     <div className="rounded-[28px] border border-[#D4FF3E]/[0.18] bg-[linear-gradient(180deg,rgba(212,255,62,0.06),rgba(15,23,42,0.9))] p-6">
       {/* HEADER */}
-      <p className="text-[13px] font-black uppercase tracking-[0.12em] text-[#D4FF3E]">Fitur · Smart Calendar</p>
-      <h2 className="mt-3 text-2xl font-extrabold text-white">Tulis atau ucapkan kegiatanmu</h2>
+      <p className="text-[13px] font-black uppercase tracking-[0.12em] text-[#D4FF3E]">Feature · Smart Calendar</p>
+      <h2 className="mt-3 text-2xl font-extrabold text-white">Type or say your activity</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-slate-400">
-        Smart Calendar mencari waktu luangmu dan membantu AI menuliskan kegiatan ke kalender. Contoh: &ldquo;Besok
-        jam 5 sore lari 30 menit sama Daniel&rdquo;.
+        Smart Calendar finds your free time and lets AI add activities to your calendar. Example: &ldquo;Tomorrow
+        at 5pm run for 30 minutes with Daniel&rdquo;.
       </p>
 
       {/* INPUT */}
       <textarea
         value={inputText}
         onChange={(e) => setInputText(e.target.value)}
-        placeholder="Tulis kegiatanmu di sini, atau tekan tombol mic untuk merekam suara..."
+        placeholder="Type your activity here, or press the mic button to record your voice..."
         rows={3}
         className="mt-4 w-full resize-y rounded-2xl border border-white/[0.14] bg-white/[0.03] px-4 py-3.5 text-sm text-white placeholder:text-slate-500 outline-none focus:border-[#D4FF3E]/50"
       />
 
       {voiceUnsupported && (
         <p className="mt-2 text-xs text-rose-400">
-          Input suara tidak didukung di browser ini. Coba gunakan Chrome desktop, atau ketik langsung.
+          Voice input isn't supported in this browser. Try Chrome desktop, or type directly.
         </p>
       )}
 
@@ -175,7 +176,7 @@ export default function AIScheduler({ calendarEntries, onAddEntry, friendName }:
           <span
             className={`h-2.5 w-2.5 rounded-full ${isRecording ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-[#D4FF3E]'}`}
           />
-          {isRecording ? 'Berhenti Merekam...' : 'Rekam Suara'}
+          {isRecording ? 'Stop Recording...' : 'Record Voice'}
         </button>
 
         <button
@@ -187,7 +188,7 @@ export default function AIScheduler({ calendarEntries, onAddEntry, friendName }:
               : 'cursor-not-allowed bg-[#D4FF3E]/25 text-[#0f172a]/70'
           }`}
         >
-          {isProcessing ? 'AI sedang memproses...' : 'Tambahkan ke Kalender dengan AI'}
+          {isProcessing ? 'AI is processing...' : 'Add to Calendar with AI'}
         </button>
       </div>
 

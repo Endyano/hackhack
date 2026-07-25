@@ -40,9 +40,9 @@ export default function ProgressPage() {
 
   return (
     <PageShell
-      eyebrow="Fitur · Progress"
+      eyebrow="Feature · Progress"
       title="Progress"
-      description="Pantau riwayat aktivitas dan kesejahteraan fisikmu dari waktu ke waktu."
+      description="Track your activity history and physical wellbeing over time."
       backgroundImage="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1920&q=80"
     >
       <style>

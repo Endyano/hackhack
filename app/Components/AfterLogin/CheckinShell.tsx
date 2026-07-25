@@ -70,7 +70,7 @@ export default function CheckinShell({ step, onBack, children }: CheckinShellPro
             fontWeight: 700,
           }}
         >
-          ← Kembali
+          ← Back
         </button>
         <span style={{ color: accentLime, fontSize: '12px', fontWeight: 900, letterSpacing: '0.14em' }}>{step}</span>
       </div>

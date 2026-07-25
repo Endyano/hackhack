@@ -61,12 +61,46 @@ class CalendarEvent(BaseModel):
     start_time: datetime
     end_time: datetime
     event_type: str | None = None
+    external_event_id: str | None = None
+    source: str = "manual"
+    last_synced_at: datetime | None = None
 
 
 class FreeSlot(BaseModel):
     start_time: datetime
     end_time: datetime
     usable_minutes: int
+
+
+# ============================================================
+# Google Calendar sync
+# ============================================================
+class GoogleSyncRequest(BaseModel):
+    user_id: UUID
+
+
+class GoogleConnectionStatus(BaseModel):
+    connected: bool
+    connected_at: datetime | None = None
+    last_synced_at: datetime | None = None
+
+
+class GoogleSyncResult(BaseModel):
+    synced: int
+    removed: int
+    last_synced_at: datetime
+
+
+class FreeSlotItem(BaseModel):
+    start_time: datetime
+    end_time: datetime
+    duration_minutes: int
+
+
+class FreeSlotsResponse(BaseModel):
+    date: str
+    source: str
+    free_slots: list[FreeSlotItem] = Field(default_factory=list)
 
 
 # ============================================================

@@ -6,6 +6,8 @@ from fastapi import APIRouter
 from app.errors import AppError
 from app.foundry.intensity_rules import max_allowed_intensity
 from app.foundry.validation import RawRecommendation
+from app.google_calendar import store as google_store
+from app.google_calendar.sync import sync_user_calendar
 from app.models.schemas import (
     CareMatchInfo,
     RecommendationContext,
@@ -23,6 +25,17 @@ from app.services.recommendations import (
 router = APIRouter(tags=["recommendations"])
 
 MIN_SHORTEN_MINUTES = 5
+
+
+def _maybe_sync_google_calendar(user_id: UUID) -> None:
+    """Best-effort refresh of the user's Google-sourced calendar_events right
+    before building recommendation context, per one of the MVP sync triggers.
+    Must never block or break recommendation generation -- swallow everything."""
+    try:
+        if google_store.get_connection(user_id):
+            sync_user_calendar(user_id)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def build_foundry_input(context: RecommendationContext, usable_minutes: int | None = None) -> dict:
@@ -64,6 +77,7 @@ def _to_response(
 
 @router.post("/recommendations/generate", response_model=RecommendationResponse)
 def generate_recommendation(payload: RecommendationGenerateRequest) -> RecommendationResponse:
+    _maybe_sync_google_calendar(payload.user_id)
     context = build_recommendation_context(payload.user_id)
     if context.free_period is None:
         raise AppError(422, "NO_FREE_SLOT", "No suitable free period was found today.")
