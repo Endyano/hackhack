@@ -2,14 +2,22 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useDemoState } from './DemoStateContext';
 import BrandMark from './BrandMark';
+import { createSupabaseBrowserClient } from '../../lib/supabase/client';
 
 const accentLime = '#D4FF3E';
 
 export default function AppNav() {
   const router = useRouter();
-  const { userId, setUser } = useDemoState();
+  const handleLogout = async () => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut();
+    } finally {
+      router.push('/login');
+      router.refresh();
+    }
+  };
 
   return (
     <nav
@@ -35,23 +43,7 @@ export default function AppNav() {
 
       <div style={{ display: 'flex', gap: '16px' }}>
         <button
-          onClick={() => setUser(userId === 'eric' ? 'daniel' : 'eric')}
-          className="dash-btn"
-          style={{
-            borderRadius: '100px',
-            border: '1px solid rgba(255,255,255,0.16)',
-            background: 'rgba(255,255,255,0.04)',
-            color: '#e2e8f0',
-            padding: '16px 28px',
-            cursor: 'pointer',
-            fontWeight: 700,
-            fontSize: '16px',
-          }}
-        >
-          Switch User
-        </button>
-        <button
-          onClick={() => router.push('/')}
+          onClick={handleLogout}
           className="dash-btn"
           style={{
             borderRadius: '100px',

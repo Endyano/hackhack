@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { moodMeta, getCheckinRecommendation } from '../AfterLogin/CheckinData';
 import { useDemoState } from '../DemoStateContext';
 import { getActiveRecommendation, formatDate } from '../DemoData';
 import AppNav from '../AppNav';
+import { createSupabaseBrowserClient } from '../../../lib/supabase/client';
+import { generateAiRecommendation, type AiRecommendation } from '../../../lib/recommendations';
 
 const bgDark = '#090C0B';
 const accentLime = '#D4FF3E';
@@ -85,7 +88,44 @@ function getGreeting() {
 }
 
 export default function Dashboard() {
-  const { currentUser, checkinMood, checkinEnergy, recommendationState } = useDemoState();
+  const { currentUser, checkinMood, checkinEnergy, recommendationState, setSelectedMovement, setSessionSource } = useDemoState();
+  const [profileName, setProfileName] = useState('Athlete');
+  const [aiRecommendation, setAiRecommendation] = useState<AiRecommendation | null>(null);
+  const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
+
+  useEffect(() => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      void supabase.auth.getUser().then(({ data }) => {
+        if (!data.user) return;
+        setProfileName(data.user.user_metadata.full_name ?? data.user.email?.split('@')[0] ?? 'Athlete');
+      });
+    } catch {
+      // The dashboard keeps its safe fallback name while Supabase is unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (checkinMood === null || checkinEnergy === null) return;
+
+    let cancelled = false;
+    const generate = async () => {
+      setIsGeneratingRecommendation(true);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) return;
+        const recommendation = await generateAiRecommendation(data.session.access_token, checkinMood, checkinEnergy);
+        if (!cancelled) setAiRecommendation(recommendation);
+      } catch {
+        // Keep the immediate safety-focused recommendation visible if Azure is unavailable.
+      } finally {
+        if (!cancelled) setIsGeneratingRecommendation(false);
+      }
+    };
+    void generate();
+    return () => { cancelled = true; };
+  }, [checkinMood, checkinEnergy]);
 
   const currentDate = formatDate();
   const hasCheckedInToday = checkinMood !== null && checkinEnergy !== null;
@@ -98,7 +138,7 @@ export default function Dashboard() {
     ? { mood: checkinMood!, energy: checkinEnergy!, rec: getCheckinRecommendation(checkinMood!, checkinEnergy!) }
     : null;
   // heroRec is whichever one we actually show on the card: check-in based, or the base one.
-  const heroRec = todaysCheckin ? todaysCheckin.rec : activeRec;
+  const heroRec = todaysCheckin ? (aiRecommendation ?? todaysCheckin.rec) : activeRec;
   // The check-in based recommendation has no exact duration/start time, so only show those tags
   // (and use them elsewhere on the page) when we're using the base recommendation.
   const hasStructuredTiming = !todaysCheckin;
@@ -113,6 +153,19 @@ export default function Dashboard() {
   const activityGlyph = getActivityGlyph(heroRec.activity);
   // Only brag about a workout buddy when the base recommendation actually has one lined up.
   const showBuddyChip = hasStructuredTiming && recommendationState === 'pending' && currentUser.recommendation.socialCompatible;
+
+  const startRecommendedSession = () => {
+    if (!todaysCheckin) return;
+    const isIndoor = /mobility|stretch|strength|recovery/i.test(heroRec.activity);
+    setSelectedMovement({
+      title: heroRec.activity,
+      durationMinutes: heroRec.durationMinutes,
+      intensity: heroRec.intensity,
+      mode: isIndoor ? 'indoor' : 'outdoor',
+      steps: isIndoor ? ['Warm up', 'Main movement', 'Cool down'] : [],
+    });
+    setSessionSource('move');
+  };
 
   return (
     <div
@@ -450,14 +503,14 @@ export default function Dashboard() {
           <div>
             <p style={{ margin: 0, color: textGray, fontSize: '14px', fontWeight: 600 }}>{currentDate}</p>
             <h1 style={{ margin: '10px 0 6px', fontSize: 'clamp(2.4rem, 4vw, 3.4rem)', fontWeight: 900, letterSpacing: '-1.5px' }}>
-              {getGreeting()}, <span style={{ color: accentLime }}>{currentUser.name}</span> 👋
+              {getGreeting()}, <span style={{ color: accentLime }}>{profileName}</span> 👋
             </h1>
             <p style={{ margin: 0, color: textGray, fontSize: '16px', fontWeight: 600 }}>Your physical care snapshot</p>
           </div>
 
           {!hasCheckedInToday && (
             <Link
-              href={`/checkin/mood?user=${currentUser.id}`}
+              href="/checkin/mood"
               className="dash-btn"
               style={{
                 display: 'inline-block',
@@ -537,7 +590,7 @@ export default function Dashboard() {
             <div style={{ flex: '1 1 280px', minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                 <p style={{ margin: 0, color: accentLime, fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                  ✨ Recommended for you
+                  ✨ {isGeneratingRecommendation ? 'CareBot is personalising your session…' : aiRecommendation ? 'Azure AI recommendation' : 'Recommended for you'}
                 </p>
                 <span className="live-badge" style={{ color: textGray, fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                   <span className="live-dot" /> Live
@@ -551,7 +604,7 @@ export default function Dashboard() {
               {/* Quick-look tags: intensity always shows; duration/time only when we know them; buddy tag if one's free */}
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', margin: '18px 0' }}>
                 <span style={tagStyle}>{heroRec.intensity}</span>
-                {hasStructuredTiming && <span style={tagStyle}>{activeRec.durationMinutes} min</span>}
+                <span style={tagStyle}>{heroRec.durationMinutes} min</span>
                 {hasStructuredTiming && <span style={tagStyle}>Today · {activeRec.startTime}</span>}
                 {showBuddyChip && <span className="buddy-chip">🤝 {currentUser.recommendation.friendName} is free too</span>}
               </div>
@@ -564,6 +617,7 @@ export default function Dashboard() {
               {/* Main button — sends the user into the live workout/execution page */}
               <Link
                 href="/active-session"
+                onClick={startRecommendedSession}
                 className="dash-btn cta-shimmer"
                 style={{
                   display: 'inline-block',

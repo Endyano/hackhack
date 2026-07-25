@@ -134,7 +134,7 @@ export default function MainApp() {
           <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
           <a href="#movement-guide" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>Movement Guide</a>
           <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
-          <a href="#whats-new" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>What's New</a>
+          <a href="#whats-new" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>What&apos;s New</a>
           <span style={{ color: accentLime, opacity: 0.5, fontSize: '24px' }}>•</span>
           <a href="#about" className="nav-link" style={{ cursor: 'pointer', color: 'white', textDecoration: 'none' }}>About</a>
         </div>
@@ -297,7 +297,7 @@ export default function MainApp() {
 
                 {/* AI Signal Circle */}
                 <div style={{ border: `2px solid rgba(255,255,255,0.1)`, borderRadius: '32px', padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginTop: '20px', position: 'relative', backgroundColor: 'rgba(212, 255, 62, 0.02)' }}>
-                  <div style={{ position: 'absolute', top: '-14px', backgroundColor: '#111814', padding: '0 20px', fontSize: '16px', color: textGray, fontWeight: '800', letterSpacing: '1.5px' }}>TODAY'S SIGNAL</div>
+                  <div style={{ position: 'absolute', top: '-14px', backgroundColor: '#111814', padding: '0 20px', fontSize: '16px', color: textGray, fontWeight: '800', letterSpacing: '1.5px' }}>TODAY&apos;S SIGNAL</div>
                   
                   <div className="animate-pulse" style={{ width: '240px', height: '240px', borderRadius: '50%', border: `8px solid ${accentLime}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: '70px', fontWeight: '900', color: accentLime, lineHeight: '1' }}>MOVE</span>
@@ -411,7 +411,7 @@ export default function MainApp() {
 
       {/* WHAT'S NEW */}
       <section id="whats-new" style={{ padding: '100px 5%', maxWidth: '2200px', margin: '0 auto', width: '100%', boxSizing: 'border-box', position: 'relative', zIndex: 1 }}>
-        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>WHAT'S NEW</p>
+        <p style={{ margin: 0, color: accentLime, fontSize: '18px', fontWeight: '900', letterSpacing: '4px' }}>WHAT&apos;S NEW</p>
         <h2 style={{ margin: '16px 0 60px', fontSize: '64px', fontWeight: '900', letterSpacing: '-2px', maxWidth: '900px' }}>
           Fresh off the hackathon build.
         </h2>

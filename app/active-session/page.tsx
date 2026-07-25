@@ -109,10 +109,6 @@ export default function ActiveSessionPage() {
   const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
 
   useEffect(() => {
-    setSecondsLeft(totalSeconds);
-  }, [totalSeconds]);
-
-  useEffect(() => {
     const id = setInterval(() => {
       setSecondsLeft((current) => (current > 0 ? current - 1 : 0));
     }, 1000);
@@ -145,11 +141,14 @@ export default function ActiveSessionPage() {
 
   useEffect(() => {
     if (mode !== 'indoor') return;
-    setMoveSecondsLeft(secondsPerMove);
+    const resetId = window.setTimeout(() => setMoveSecondsLeft(secondsPerMove), 0);
     const id = setInterval(() => {
       setMoveSecondsLeft((current) => (current > 0 ? current - 1 : 0));
     }, 1000);
-    return () => clearInterval(id);
+    return () => {
+      window.clearTimeout(resetId);
+      clearInterval(id);
+    };
   }, [mode, stepIndex, secondsPerMove]);
 
   const isLastMove = stepIndex === indoorMoves.length - 1;

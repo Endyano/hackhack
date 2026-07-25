@@ -1,22 +1,35 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import MoodCheckIn from '../../Components/AfterLogin/MoodCheckIn';
 import type { Mood } from '../../Components/AfterLogin/CheckinData';
-import { demoUsers } from '../../Components/DemoData';
+import { createSupabaseBrowserClient } from '../../../lib/supabase/client';
 
 function MoodCheckInContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const userId = searchParams.get('user') === 'daniel' ? 'daniel' : 'eric';
-  const userName = (demoUsers.find((user) => user.id === userId) ?? demoUsers[0]).name;
-
   const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
+  const [userName, setUserName] = useState('Athlete');
+
+  useEffect(() => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      void supabase.auth.getUser().then(({ data }) => {
+        if (!data.user) {
+          router.replace('/login');
+          return;
+        }
+
+        setUserName(data.user.user_metadata.full_name ?? data.user.email?.split('@')[0] ?? 'Athlete');
+      });
+    } catch {
+      router.replace('/login');
+    }
+  }, [router]);
 
   const handleContinue = () => {
     if (!selectedMood) return;
-    router.push(`/checkin/energy?user=${userId}&mood=${selectedMood}`);
+    router.push(`/checkin/energy?mood=${selectedMood}`);
   };
 
   const handleBack = () => {

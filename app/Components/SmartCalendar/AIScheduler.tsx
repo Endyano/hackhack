@@ -1,14 +1,30 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { CalendarEntry } from '../DemoData';
 import { toMinutes, fromMinutes, pad } from './calendarStyles';
+import type { CalendarEventInput } from '../../../lib/calendar-events';
+import { createSupabaseBrowserClient } from '../../../lib/supabase/client';
+import { interpretCalendarCommand } from '../../../lib/calendar-ai';
 
 type AISchedulerProps = {
-  onAddEntry: (entry: CalendarEntry) => void;
-  /** The user's CareMatch buddy — mentioning this name in the input triggers Mutual Free Time Sync. */
-  friendName?: string;
+  onAddEntry: (entries: ParsedCalendarEntry[]) => Promise<void>;
 };
+
+export type ParsedCalendarEntry = CalendarEventInput & { date: string; startTime: string; endTime: string };
+
+type SpeechRecognitionResultLike = { 0: { transcript: string } };
+type SpeechRecognitionEventLike = { results: ArrayLike<SpeechRecognitionResultLike> };
+type SpeechRecognitionInstance = {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
 
 /**
  * "Mutual Free Time Sync" — when the parsed text mentions the user's CareMatch
@@ -18,74 +34,75 @@ type AISchedulerProps = {
  * In production this is where a real overlap-check against both Google
  * Calendars would run before confirming the slot.
  */
-function parseScheduleInput(raw: string, friendName?: string): CalendarEntry {
+const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+
+function dateKey(date: Date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function parseDate(text: string) {
+  const today = new Date();
+  if (/\btomorrow\b/i.test(text)) {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    return dateKey(tomorrow);
+  }
+  if (/\btoday\b/i.test(text)) return dateKey(today);
+
+  const isoMatch = text.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+  if (isoMatch) return `${isoMatch[1]}-${pad(Number(isoMatch[2]))}-${pad(Number(isoMatch[3]))}`;
+
+  const monthMatch = text.match(new RegExp(`\\b(${monthNames.join('|')})\\s+(\\d{1,2})(?:,?\\s+(\\d{4}))?`, 'i'));
+  if (monthMatch) {
+    const month = monthNames.indexOf(monthMatch[1].toLowerCase());
+    const year = monthMatch[3] ? Number(monthMatch[3]) : today.getFullYear();
+    return `${year}-${pad(month + 1)}-${pad(Number(monthMatch[2]))}`;
+  }
+  return dateKey(today);
+}
+
+function to24Hour(hourText: string, minuteText: string | undefined, meridiem?: string) {
+  let hour = Number(hourText);
+  const minute = Number(minuteText ?? '0');
+  if (meridiem?.toLowerCase() === 'pm' && hour < 12) hour += 12;
+  if (meridiem?.toLowerCase() === 'am' && hour === 12) hour = 0;
+  return `${pad(hour)}:${pad(minute)}`;
+}
+
+export function parseScheduleInput(raw: string): ParsedCalendarEntry {
   let text = raw.trim();
-
-  let startMinutes: number;
-  const timeMatch =
-    text.match(/(?:at\s*)?(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)?/i) ?? text.match(/(\d{1,2})[.:](\d{2})/);
-
-  if (timeMatch) {
-    let hour = parseInt(timeMatch[1], 10);
-    const minute = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-    const meridiem = timeMatch[3]?.toLowerCase();
-    if (meridiem === 'pm' && hour < 12) hour += 12;
-    startMinutes = hour * 60 + minute;
-    text = text.replace(timeMatch[0], ' ');
-  } else {
-    const now = new Date();
-    startMinutes = toMinutes(`${pad(now.getHours())}:${pad(now.getMinutes())}`) + 60;
-  }
-
-  let durationMinutes = 30;
-  const durationMatch = raw.match(/(\d+)\s*hours?/i) ?? raw.match(/(\d+)\s*minutes?/i);
-  if (durationMatch) {
-    const value = parseInt(durationMatch[1], 10);
-    durationMinutes = /hours?/i.test(durationMatch[0]) ? value * 60 : value;
-    text = text.replace(durationMatch[0], ' ');
-  }
-
-  let mentionsFriend = false;
-  if (friendName) {
-    const friendMatch = new RegExp(`\\b(with|and|together with)\\s+${friendName}\\b`, 'i');
-    mentionsFriend = friendMatch.test(text);
-    text = text.replace(friendMatch, ' ');
-  }
+  const date = parseDate(text);
+  const rangeMatch = text.match(/(?:at\s*)?(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)?\s*(?:-|–|to)\s*(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)?/i);
+  const now = new Date();
+  const fallbackStart = fromMinutes(toMinutes(`${pad(now.getHours())}:${pad(now.getMinutes())}`) + 60);
+  const startTime = rangeMatch ? to24Hour(rangeMatch[1], rangeMatch[2], rangeMatch[3] ?? rangeMatch[6]) : fallbackStart;
+  const endTime = rangeMatch ? to24Hour(rangeMatch[4], rangeMatch[5], rangeMatch[6] ?? rangeMatch[3]) : fromMinutes(toMinutes(startTime) + 30);
+  text = text.replace(rangeMatch?.[0] ?? '', ' ');
 
   text = text
-    .replace(/\b(tomorrow|today|later|morning|afternoon|evening|night)\b/gi, ' ')
+    .replace(/\b(today|tomorrow|january|february|march|april|may|june|july|august|september|october|november|december)\b\s*\d{0,2}(?:,?\s*\d{4})?/gi, ' ')
+    .replace(/\b(can you help me to|can you help me|i want to|i need to|i have to|want to|please|add|put|in the calendar|to the calendar|calendar|on|at)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
   const cleanTitle = text.length > 0 ? text.charAt(0).toUpperCase() + text.slice(1) : 'New activity';
-  const start = fromMinutes(startMinutes);
-  const end = fromMinutes(startMinutes + durationMinutes);
-
-  if (mentionsFriend && friendName) {
-    return {
-      title: `🏃 ${cleanTitle} with ${friendName}`,
-      start,
-      end,
-      type: 'match',
-      note: `AI found that you and ${friendName} are both free at this time — ${friendName}’s energy is looking good!`,
-    };
-  }
-
-  return { title: cleanTitle, start, end, type: 'activity' };
+  const normalized = cleanTitle.toLowerCase();
+  const type: CalendarEventInput['type'] = /stretch|mobility|yoga/.test(normalized) ? 'mobility' : /recovery|rest/.test(normalized) ? 'recovery' : /with|together/.test(normalized) ? 'social' : 'training';
+  return { title: cleanTitle, date, startTime, endTime, startAt: `${date}T${startTime}:00`, endAt: `${date}T${endTime}:00`, type };
 }
 
-export default function AIScheduler({ onAddEntry, friendName }: AISchedulerProps) {
+export default function AIScheduler({ onAddEntry }: AISchedulerProps) {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [lastSession, setLastSession] = useState<CalendarEntry | null>(null);
+  const [lastSessions, setLastSessions] = useState<ParsedCalendarEntry[]>([]);
   const [voiceUnsupported, setVoiceUnsupported] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   const handleToggleRecord = () => {
-    const SpeechRecognitionCtor =
-      typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+    const speechWindow = window as Window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor };
+    const SpeechRecognitionCtor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
 
     if (!SpeechRecognitionCtor) {
       setVoiceUnsupported(true);
@@ -102,9 +119,9 @@ export default function AIScheduler({ onAddEntry, friendName }: AISchedulerProps
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results as ArrayLike<any>)
-        .map((result: any) => result[0].transcript)
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript ?? '')
         .join(' ');
       setInputText((prev) => (prev ? `${prev} ${transcript}` : transcript));
     };
@@ -116,24 +133,27 @@ export default function AIScheduler({ onAddEntry, friendName }: AISchedulerProps
     setIsRecording(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!inputText.trim() || isProcessing) return;
     setIsProcessing(true);
     setFeedback('CareBot is reading your training request…');
-    setLastSession(null);
+    setLastSessions([]);
 
-    window.setTimeout(() => {
-      const entry = parseScheduleInput(inputText, friendName);
-      onAddEntry(entry);
-      setLastSession(entry);
-      setFeedback(
-        entry.type === 'match'
-          ? `AI found shared time: "${entry.title}" at ${entry.start}–${entry.end}.`
-          : `AI added "${entry.title}" at ${entry.start}–${entry.end}.`,
-      );
+    void (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) throw new Error('Please sign in before asking CareBot to update your calendar.');
+        const entries = await interpretCalendarCommand(data.session.access_token, inputText);
+        await onAddEntry(entries);
+        setLastSessions(entries);
+        setFeedback(entries.length === 1 ? `Added “${entries[0].title}” on ${entries[0].date} at ${entries[0].startTime}–${entries[0].endTime}.` : `Added ${entries.length} ${entries[0].title} sessions to your calendar.`);
       setInputText('');
+      } catch (error) {
+        setFeedback(error instanceof Error ? error.message : 'CareBot could not add this event.');
+      }
       setIsProcessing(false);
-    }, 700);
+    })();
   };
 
   const canSubmit = inputText.trim().length > 0 && !isProcessing;
@@ -188,13 +208,13 @@ export default function AIScheduler({ onAddEntry, friendName }: AISchedulerProps
             {isRecording ? 'Listening… tap to stop' : 'Talk to CareBot'}
           </button>
           <button onClick={handleSubmit} disabled={!canSubmit} className={`min-w-[220px] flex-1 rounded-full px-5 py-3 text-sm font-black transition-transform ${canSubmit ? 'cursor-pointer bg-[#D4FF3E] text-[#0f172a] hover:-translate-y-0.5' : 'cursor-not-allowed bg-[#D4FF3E]/25 text-[#0f172a]/70'}`}>
-            {isProcessing ? 'Adding to calendar…' : 'Add to calendar'}
+          {isProcessing ? 'Adding to calendar…' : 'Add to calendar'}
           </button>
         </div>
         {voiceUnsupported && <p className="mt-3 text-xs text-rose-400">Voice input is not supported in this browser. Try Chrome on desktop, or type directly.</p>}
       </div>
 
-      {feedback && <div className={`calendar-written mt-4 flex items-start gap-3 rounded-2xl border p-4 ${isProcessing ? 'border-sky-300/25 bg-sky-300/[0.08]' : 'border-[#D4FF3E]/35 bg-[#D4FF3E]/[0.09]'}`}><span className="text-xl">{isProcessing ? '✦' : '✓'}</span><div><p className="m-0 text-sm font-bold text-white">{feedback}</p>{lastSession && <p className="mt-1 text-xs text-lime-200">Calendar updated: {lastSession.title} · {lastSession.start}–{lastSession.end}</p>}</div></div>}
+      {feedback && <div className={`calendar-written mt-4 flex items-start gap-3 rounded-2xl border p-4 ${isProcessing ? 'border-sky-300/25 bg-sky-300/[0.08]' : 'border-[#D4FF3E]/35 bg-[#D4FF3E]/[0.09]'}`}><span className="text-xl">{isProcessing ? '✦' : '✓'}</span><div><p className="m-0 text-sm font-bold text-white">{feedback}</p>{lastSessions.length > 0 && <p className="mt-1 text-xs text-lime-200">Calendar updated: {lastSessions.map((entry) => `${entry.date} · ${entry.startTime}–${entry.endTime}`).join(' · ')}</p>}</div></div>}
     </div>
   );
 }

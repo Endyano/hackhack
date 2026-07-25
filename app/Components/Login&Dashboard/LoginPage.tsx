@@ -1,10 +1,11 @@
 import type { SubmitEvent } from 'react';
 
 type LoginPageProps = {
-  username: string;
+  email: string;
   password: string;
   error: string;
-  onUsernameChange: (value: string) => void;
+  isSubmitting: boolean;
+  onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onLogin: (event: SubmitEvent<HTMLFormElement>) => void;
   onBack: () => void;
@@ -15,19 +16,15 @@ const accentLime = '#D4FF3E';
 const textGray = '#9CA3AF';
 
 export default function LoginPage({
-  username,
+  email,
   password,
   error,
-  onUsernameChange,
+  isSubmitting,
+  onEmailChange,
   onPasswordChange,
   onLogin,
   onBack,
 }: LoginPageProps) {
-  const fillDemo = (id: 'eric' | 'daniel') => {
-    onUsernameChange(id);
-    onPasswordChange('demo');
-  };
-
   return (
     <div
       style={{
@@ -204,56 +201,22 @@ export default function LoginPage({
           className="login-fade"
           style={{ animationDelay: '0.1s', margin: 0, fontSize: 'clamp(3.4rem, 8vw, 5.2rem)', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px' }}
         >
-          Sign in to your <span style={{ color: accentLime }}>demo</span> account
+          Sign in to <span style={{ color: accentLime }}>CareShift</span>
         </h1>
-
-        {/* QUICK DEMO CHIPS */}
-        <div className="login-fade" style={{ animationDelay: '0.2s', display: 'flex', gap: '18px', marginTop: '44px' }}>
-          <button
-            type="button"
-            onClick={() => fillDemo('eric')}
-            className="login-chip"
-            style={{
-              background: 'rgba(212, 255, 62, 0.08)',
-              border: '2px solid rgba(212, 255, 62, 0.3)',
-              borderRadius: '100px',
-              padding: '19px 38px',
-              color: accentLime,
-              fontSize: '19px',
-              fontWeight: 800,
-            }}
-          >
-            Eric
-          </button>
-          <button
-            type="button"
-            onClick={() => fillDemo('daniel')}
-            className="login-chip"
-            style={{
-              background: 'rgba(212, 255, 62, 0.08)',
-              border: '2px solid rgba(212, 255, 62, 0.3)',
-              borderRadius: '100px',
-              padding: '19px 38px',
-              color: accentLime,
-              fontSize: '19px',
-              fontWeight: 800,
-            }}
-          >
-            Daniel
-          </button>
-        </div>
 
         <form
           onSubmit={onLogin}
           className="login-fade"
-          style={{ animationDelay: '0.3s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginTop: '40px', width: '100%', maxWidth: '520px' }}
+          style={{ animationDelay: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginTop: '40px', width: '100%', maxWidth: '520px' }}
         >
           <input
             className="login-input"
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => onUsernameChange(e.target.value)}
+            type="email"
+            autoComplete="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            required
             style={{
               width: '100%',
               padding: '24px 26px',
@@ -272,6 +235,8 @@ export default function LoginPage({
             placeholder="Password"
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}
+            autoComplete="current-password"
+            required
             style={{
               width: '100%',
               padding: '24px 26px',
@@ -290,6 +255,7 @@ export default function LoginPage({
           <button
             type="submit"
             className="login-submit"
+            disabled={isSubmitting}
             style={{
               width: '100%',
               padding: '24px 18px',
@@ -299,12 +265,13 @@ export default function LoginPage({
               color: bgDark,
               fontWeight: 900,
               fontSize: '20px',
-              cursor: 'pointer',
+              cursor: isSubmitting ? 'wait' : 'pointer',
+              opacity: isSubmitting ? 0.7 : 1,
               boxShadow: '0 12px 28px rgba(212, 255, 62, 0.28)',
               marginTop: '8px',
             }}
           >
-            Sign in to Dashboard
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>

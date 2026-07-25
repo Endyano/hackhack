@@ -7,13 +7,14 @@ type EnergyCheckInProps = {
   onEnergyChange: (value: number) => void;
   onContinue: () => void;
   onBack: () => void;
+  isSaving?: boolean;
+  error?: string;
 };
 
 const accentLime = '#D4FF3E';
 const bgDark = '#090C0B';
-const textGray = '#9CA3AF';
 
-export default function EnergyCheckIn({ userName, energy, onEnergyChange, onContinue, onBack }: EnergyCheckInProps) {
+export default function EnergyCheckIn({ userName, energy, onEnergyChange, onContinue, onBack, isSaving = false, error }: EnergyCheckInProps) {
   return (
     <CheckinShell step="STEP 2 · ENERGY" onBack={onBack}>
       <style>
@@ -74,6 +75,7 @@ export default function EnergyCheckIn({ userName, energy, onEnergyChange, onCont
             step={1}
             value={energy}
             onChange={(e) => onEnergyChange(Number(e.target.value))}
+            disabled={isSaving}
             className="energy-slider"
             style={{ marginTop: '40px' }}
           />
@@ -85,9 +87,12 @@ export default function EnergyCheckIn({ userName, energy, onEnergyChange, onCont
           </div>
         </div>
 
+        {error && <p style={{ margin: '28px 0 0', color: '#fb7185', fontWeight: 700 }}>{error}</p>}
+
         <button
           onClick={onContinue}
           className="checkin-fade checkin-cta"
+          disabled={isSaving}
           style={{
             animationDelay: '0.3s',
             marginTop: '48px',
@@ -98,11 +103,12 @@ export default function EnergyCheckIn({ userName, energy, onEnergyChange, onCont
             color: bgDark,
             fontWeight: 900,
             fontSize: '18px',
-            cursor: 'pointer',
+            cursor: isSaving ? 'wait' : 'pointer',
+            opacity: isSaving ? 0.7 : 1,
             boxShadow: '0 14px 30px rgba(212, 255, 62, 0.3)',
           }}
         >
-          Continue
+          {isSaving ? 'Saving your check-in…' : 'See my recommendation'}
         </button>
       </div>
     </CheckinShell>
